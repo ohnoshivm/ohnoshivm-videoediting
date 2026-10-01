@@ -19,6 +19,7 @@ from __future__ import annotations
 import os
 
 import numpy as np
+from scipy import fft as sfft
 from scipy import ndimage, signal
 
 # --------------------------------------------------------------------------------------
@@ -498,7 +499,7 @@ def make_hall_ir(t60, predelay=0.020, seed=(100,), mult=None, length_factor=1.12
     a mono input yields a unit-energy, fully decorrelated stereo return."""
     rng = rng_for(*seed)
     mult = _HALL_MULT if mult is None else np.asarray(mult, float)
-    n = int((predelay + t60 * length_factor) * SR)
+    n = sfft.next_fast_len(int((predelay + t60 * length_factor) * SR), real=True)
     tt = np.maximum(np.arange(n) / SR - predelay, 0.0)
     freqs = np.fft.rfftfreq(n, 1.0 / SR)
     lf = np.log2(np.maximum(freqs, 1.0) / 62.5)            # octave position relative to the first centre

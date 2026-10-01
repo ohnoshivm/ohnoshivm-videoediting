@@ -1,0 +1,650 @@
+[
+ {
+  "frame": 0,
+  "id": "a1.fall",
+  "act": 1,
+  "desc": "f0-2: low camera in a red void with a faint ground/horizon. A white A-wedge crown plummets into frame, motion-blurred. f0 must already be a striking thumbnail."
+ },
+ {
+  "frame": 0,
+  "id": "act1",
+  "act": 1,
+  "desc": "ACT I - THE CROWN begins (f0)"
+ },
+ {
+  "frame": 3,
+  "id": "a1.slam",
+  "act": 1,
+  "desc": "SLAM: the crown lands at ground level near frame centre. Heavy camera shake decays over ~10 f; a subtle graphic ring of displaced fog runs along the ground."
+ },
+ {
+  "frame": 12,
+  "id": "a1.hit01",
+  "act": 1,
+  "desc": "Jack-up hit 01 (f12-71): a new floor module thrusts up out of the ground beneath the stack and locks, lifting everything above by one module. Camera tilts/cranes up following the crown."
+ },
+ {
+  "frame": 20,
+  "id": "a1.hit02",
+  "act": 1,
+  "desc": "Jack-up hit 02: module thrusts up and locks."
+ },
+ {
+  "frame": 27,
+  "id": "a1.hit03",
+  "act": 1,
+  "desc": "Jack-up hit 03: module thrusts up and locks."
+ },
+ {
+  "frame": 33,
+  "id": "a1.hit04",
+  "act": 1,
+  "desc": "Jack-up hit 04: module thrusts up and locks."
+ },
+ {
+  "frame": 38,
+  "id": "a1.hit05",
+  "act": 1,
+  "desc": "Jack-up hit 05: module thrusts up and locks."
+ },
+ {
+  "frame": 42,
+  "id": "a1.hit06",
+  "act": 1,
+  "desc": "Jack-up hit 06: module thrusts up and locks."
+ },
+ {
+  "frame": 46,
+  "id": "a1.hit07",
+  "act": 1,
+  "desc": "Jack-up hit 07: module thrusts up and locks."
+ },
+ {
+  "frame": 49,
+  "id": "a1.hit08",
+  "act": 1,
+  "desc": "Jack-up hit 08: module thrusts up and locks."
+ },
+ {
+  "frame": 52,
+  "id": "a1.hit09",
+  "act": 1,
+  "desc": "Jack-up hit 09: module thrusts up and locks."
+ },
+ {
+  "frame": 55,
+  "id": "a1.hit10",
+  "act": 1,
+  "desc": "Jack-up hit 10: module thrusts up and locks."
+ },
+ {
+  "frame": 57,
+  "id": "a1.hit11",
+  "act": 1,
+  "desc": "Jack-up hit 11: module thrusts up and locks."
+ },
+ {
+  "frame": 59,
+  "id": "a1.hit12",
+  "act": 1,
+  "desc": "Jack-up hit 12: module thrusts up and locks."
+ },
+ {
+  "frame": 61,
+  "id": "a1.hit13",
+  "act": 1,
+  "desc": "Jack-up hit 13: module thrusts up and locks."
+ },
+ {
+  "frame": 63,
+  "id": "a1.hit14",
+  "act": 1,
+  "desc": "Jack-up hit 14: the last of the spaced hits. From f64 every frame is a hit."
+ },
+ {
+  "frame": 64,
+  "id": "a1.hit15",
+  "act": 1,
+  "desc": "Jack-up hit 15: module thrusts up and locks (every-frame surge f64-71)."
+ },
+ {
+  "frame": 65,
+  "id": "a1.hit16",
+  "act": 1,
+  "desc": "Jack-up hit 16: module thrusts up and locks (every-frame surge f64-71)."
+ },
+ {
+  "frame": 66,
+  "id": "a1.hit17",
+  "act": 1,
+  "desc": "Jack-up hit 17: module thrusts up and locks (every-frame surge f64-71)."
+ },
+ {
+  "frame": 67,
+  "id": "a1.hit18",
+  "act": 1,
+  "desc": "Jack-up hit 18: module thrusts up and locks (every-frame surge f64-71)."
+ },
+ {
+  "frame": 68,
+  "id": "a1.hit19",
+  "act": 1,
+  "desc": "Jack-up hit 19: module thrusts up and locks (every-frame surge f64-71)."
+ },
+ {
+  "frame": 69,
+  "id": "a1.hit20",
+  "act": 1,
+  "desc": "Jack-up hit 20: module thrusts up and locks (every-frame surge f64-71)."
+ },
+ {
+  "frame": 70,
+  "id": "a1.hit21",
+  "act": 1,
+  "desc": "Jack-up hit 21: module thrusts up and locks (every-frame surge f64-71)."
+ },
+ {
+  "frame": 71,
+  "id": "a1.hit22",
+  "act": 1,
+  "desc": "Jack-up hit 22 (f71): the jolts have merged into one continuous surge; the tower is about 1 km tall (extreme upward perspective)."
+ },
+ {
+  "frame": 72,
+  "id": "a1.toplock",
+  "act": 1,
+  "desc": "TOP LOCK: everything stops dead, in silence. Slow crane up the tower begins (f72-127)."
+ },
+ {
+  "frame": 112,
+  "id": "a1.clear",
+  "act": 1,
+  "desc": "About f112 the camera clears the crown and looks down: one tower alone in a red void."
+ },
+ {
+  "frame": 128,
+  "id": "a2.type1",
+  "act": 2,
+  "desc": "\"NO TOWER RISES\": massive white type standing in the fog beyond the tower, partly occluded by it. Camera orbits slowly at crown height."
+ },
+ {
+  "frame": 128,
+  "id": "act2",
+  "act": 2,
+  "desc": "ACT II - THE STATEMENT begins (f128)"
+ },
+ {
+  "frame": 160,
+  "id": "a2.type2",
+  "act": 2,
+  "desc": "\"UNSOLD.\" completes the line."
+ },
+ {
+  "frame": 224,
+  "id": "a2.slam",
+  "act": 2,
+  "desc": "\"WE SELL THEM.\" slams full-frame in front, hard."
+ },
+ {
+  "frame": 240,
+  "id": "a2.dive",
+  "act": 2,
+  "desc": "f240-255: the camera dives fast toward the ground, arriving low and wide at the tower's base."
+ },
+ {
+  "frame": 256,
+  "id": "a3.drop",
+  "act": 3,
+  "desc": "The beat drops and the ground erupts. Towers rise around the hero tower in expanding rings. Camera pulls back and rises."
+ },
+ {
+  "frame": 256,
+  "id": "a3.land01",
+  "act": 3,
+  "desc": "Crown landing wave 1 (expanding ring)."
+ },
+ {
+  "frame": 256,
+  "id": "act3",
+  "act": 3,
+  "desc": "ACT III - DUBAI begins (f256)"
+ },
+ {
+  "frame": 264,
+  "id": "a3.land02",
+  "act": 3,
+  "desc": "Crown landing wave 2 (expanding ring)."
+ },
+ {
+  "frame": 272,
+  "id": "a3.land03",
+  "act": 3,
+  "desc": "Crown landing wave 3 (expanding ring)."
+ },
+ {
+  "frame": 280,
+  "id": "a3.land04",
+  "act": 3,
+  "desc": "Crown landing wave 4 (expanding ring)."
+ },
+ {
+  "frame": 288,
+  "id": "a3.dubai",
+  "act": 3,
+  "desc": "\"دبي\" stands huge in the fog behind the skyline, with a small \"DUBAI\"."
+ },
+ {
+  "frame": 288,
+  "id": "a3.land05",
+  "act": 3,
+  "desc": "Crown landing wave 5 (expanding ring)."
+ },
+ {
+  "frame": 296,
+  "id": "a3.land06",
+  "act": 3,
+  "desc": "More crown landings on 8ths (8 f)."
+ },
+ {
+  "frame": 304,
+  "id": "a3.land07",
+  "act": 3,
+  "desc": "More crown landings on 8ths (8 f)."
+ },
+ {
+  "frame": 312,
+  "id": "a3.land08",
+  "act": 3,
+  "desc": "More crown landings on 8ths (8 f)."
+ },
+ {
+  "frame": 320,
+  "id": "a3.land09",
+  "act": 3,
+  "desc": "More crown landings on 8ths (8 f)."
+ },
+ {
+  "frame": 320,
+  "id": "a3.sail",
+  "act": 3,
+  "desc": "f320-375: camera trucks right along the skyline; a D \"sail\" tower stands on the waterfront."
+ },
+ {
+  "frame": 328,
+  "id": "a3.land10",
+  "act": 3,
+  "desc": "More crown landings on 8ths (8 f)."
+ },
+ {
+  "frame": 336,
+  "id": "a3.land11",
+  "act": 3,
+  "desc": "More crown landings on 8ths (8 f)."
+ },
+ {
+  "frame": 344,
+  "id": "a3.land12",
+  "act": 3,
+  "desc": "More crown landings on 8ths (8 f)."
+ },
+ {
+  "frame": 352,
+  "id": "a3.land13",
+  "act": 3,
+  "desc": "More crown landings on 8ths (8 f)."
+ },
+ {
+  "frame": 360,
+  "id": "a3.land14",
+  "act": 3,
+  "desc": "More crown landings on 8ths (8 f)."
+ },
+ {
+  "frame": 368,
+  "id": "a3.land15",
+  "act": 3,
+  "desc": "More crown landings on 8ths (8 f)."
+ },
+ {
+  "frame": 376,
+  "id": "a3.whip",
+  "act": 3,
+  "desc": "f376-383: whip-pan right with extreme motion blur (fills the 8 f before LONDON)."
+ },
+ {
+  "frame": 384,
+  "id": "a4.london",
+  "act": 4,
+  "desc": "LONDON: river, a tall A \"shard\", a D dome. Skyline erupts on its downbeat; name appears in its native script (huge) plus Latin (small)."
+ },
+ {
+  "frame": 384,
+  "id": "act4",
+  "act": 4,
+  "desc": "ACT IV - EVERY CITY begins (f384)"
+ },
+ {
+  "frame": 440,
+  "id": "a4.whip.newyork",
+  "act": 4,
+  "desc": "Lateral whip into NEW YORK (8 f: long city). Whips fill the 8 f before each long city and the 4 f before each short one."
+ },
+ {
+  "frame": 448,
+  "id": "a4.newyork",
+  "act": 4,
+  "desc": "NEW YORK: a dense block of setback towers with A-wedge crowns and stacked D-arch crowns. Skyline erupts on its downbeat; name appears in its native script (huge) plus Latin (small)."
+ },
+ {
+  "frame": 504,
+  "id": "a4.whip.singapore",
+  "act": 4,
+  "desc": "Lateral whip into SINGAPORE (8 f: long city). Whips fill the 8 f before each long city and the 4 f before each short one."
+ },
+ {
+  "frame": 512,
+  "id": "a4.singapore",
+  "act": 4,
+  "desc": "SINGAPORE \"新加坡\": three towers joined by a long D-ended skybridge slab. Skyline erupts on its downbeat; name appears in its native script (huge) plus Latin (small)."
+ },
+ {
+  "frame": 536,
+  "id": "a4.whip.mumbai",
+  "act": 4,
+  "desc": "Lateral whip into MUMBAI (8 f: long city). Whips fill the 8 f before each long city and the 4 f before each short one."
+ },
+ {
+  "frame": 544,
+  "id": "a4.mumbai",
+  "act": 4,
+  "desc": "MUMBAI \"मुंबई\": a crescent of towers along a bay. Skyline erupts on its downbeat; name appears in its native script (huge) plus Latin (small)."
+ },
+ {
+  "frame": 572,
+  "id": "a4.whip.miami",
+  "act": 4,
+  "desc": "Lateral whip into MIAMI (4 f: short city). Whips fill the 8 f before each long city and the 4 f before each short one."
+ },
+ {
+  "frame": 576,
+  "id": "a4.miami",
+  "act": 4,
+  "desc": "MIAMI: slender towers on a thin strip between waters. Skyline erupts on its downbeat; name appears in its native script (huge) plus Latin (small)."
+ },
+ {
+  "frame": 588,
+  "id": "a4.whip.sydney",
+  "act": 4,
+  "desc": "Lateral whip into SYDNEY (4 f: short city). Whips fill the 8 f before each long city and the 4 f before each short one."
+ },
+ {
+  "frame": 592,
+  "id": "a4.sydney",
+  "act": 4,
+  "desc": "SYDNEY: D-sails at the water's edge and a D-arch bridge. Skyline erupts on its downbeat; name appears in its native script (huge) plus Latin (small)."
+ },
+ {
+  "frame": 604,
+  "id": "a4.whip.riyadh",
+  "act": 4,
+  "desc": "Lateral whip into RIYADH (4 f: short city). Whips fill the 8 f before each long city and the 4 f before each short one."
+ },
+ {
+  "frame": 608,
+  "id": "a4.riyadh",
+  "act": 4,
+  "desc": "RIYADH \"الرياض\": a supertall with an inverted-A void at its crown, plus a D-sphere tower. Skyline erupts on its downbeat; name appears in its native script (huge) plus Latin (small)."
+ },
+ {
+  "frame": 620,
+  "id": "a4.whip.hongkong",
+  "act": 4,
+  "desc": "Lateral whip into HONG KONG (4 f: short city). Whips fill the 8 f before each long city and the 4 f before each short one."
+ },
+ {
+  "frame": 624,
+  "id": "a4.hongkong",
+  "act": 4,
+  "desc": "HONG KONG \"香港\". Skyline erupts on its downbeat; name appears in its native script (huge) plus Latin (small)."
+ },
+ {
+  "frame": 628,
+  "id": "a4.whip.tokyo",
+  "act": 4,
+  "desc": "Lateral whip into TOKYO (4 f: short city). Whips fill the 8 f before each long city and the 4 f before each short one."
+ },
+ {
+  "frame": 632,
+  "id": "a4.tokyo",
+  "act": 4,
+  "desc": "TOKYO \"東京\". Skyline erupts on its downbeat; name appears in its native script (huge) plus Latin (small)."
+ },
+ {
+  "frame": 640,
+  "id": "a5.p2",
+  "act": 5,
+  "desc": "The frame splits into simultaneous erupting skylines: 2 panels. \"ANY TOWER.\""
+ },
+ {
+  "frame": 640,
+  "id": "act5",
+  "act": 5,
+  "desc": "ACT V - AT ONCE begins (f640)"
+ },
+ {
+  "frame": 672,
+  "id": "a5.p4",
+  "act": 5,
+  "desc": "The frame splits into simultaneous erupting skylines: 4 panels. \"ANY CITY.\""
+ },
+ {
+  "frame": 704,
+  "id": "a5.p8",
+  "act": 5,
+  "desc": "The frame splits into simultaneous erupting skylines: 8 panels. \"ANY LANGUAGE.\" (panel names in their own scripts)"
+ },
+ {
+  "frame": 736,
+  "id": "a5.p16",
+  "act": 5,
+  "desc": "The frame splits into simultaneous erupting skylines: 16 panels."
+ },
+ {
+  "frame": 768,
+  "id": "a5.p32",
+  "act": 5,
+  "desc": "The frame splits into simultaneous erupting skylines: 32 panels. \"AT ONCE.\""
+ },
+ {
+  "frame": 800,
+  "id": "a5.p64",
+  "act": 5,
+  "desc": "The frame splits into simultaneous erupting skylines: 64 panels."
+ },
+ {
+  "frame": 832,
+  "id": "a5.unison",
+  "act": 5,
+  "desc": "UNISON: every tower in every panel rises in perfect sync on one hit. \"ONE INTELLIGENCE.\""
+ },
+ {
+  "frame": 864,
+  "id": "a5.tension",
+  "act": 5,
+  "desc": "f864-895: tension build. Hard cut at f896."
+ },
+ {
+  "frame": 896,
+  "id": "a6.drop",
+  "act": 6,
+  "desc": "Drop. One continuous world skyline across the frame; the camera trucks fast as towers erupt ahead of it."
+ },
+ {
+  "frame": 896,
+  "id": "a6.sold01",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: SOLD (every 16 f)."
+ },
+ {
+  "frame": 896,
+  "id": "act6",
+  "act": 6,
+  "desc": "ACT VI - THE WORLD begins (f896)"
+ },
+ {
+  "frame": 912,
+  "id": "a6.sold02",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: مُباع (every 16 f)."
+ },
+ {
+  "frame": 928,
+  "id": "a6.sold03",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: 已售 (every 16 f)."
+ },
+ {
+  "frame": 944,
+  "id": "a6.sold04",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: बिक गया (every 16 f)."
+ },
+ {
+  "frame": 960,
+  "id": "a6.sold05",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: VENDIDO (every 16 f)."
+ },
+ {
+  "frame": 976,
+  "id": "a6.sold06",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: VENDU (every 16 f)."
+ },
+ {
+  "frame": 992,
+  "id": "a6.sold07",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: VERKAUFT (every 16 f)."
+ },
+ {
+  "frame": 1008,
+  "id": "a6.sold08",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: 成約済 (every 16 f)."
+ },
+ {
+  "frame": 1016,
+  "id": "a6.sold09",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: 계약완료 (every 8 f)."
+ },
+ {
+  "frame": 1024,
+  "id": "a6.sold10",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: ПРОДАНО (every 8 f)."
+ },
+ {
+  "frame": 1032,
+  "id": "a6.sold11",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: SATILDI (every 8 f)."
+ },
+ {
+  "frame": 1040,
+  "id": "a6.sold12",
+  "act": 6,
+  "desc": "Giant SOLD board slams into the skyline: ขายแล้ว (every 8 f)."
+ },
+ {
+  "frame": 1048,
+  "id": "a6.storm",
+  "act": 6,
+  "desc": "f1048-1087: SOLD storm, all 12 boards flickering on 16ths (every 4 f)."
+ },
+ {
+  "frame": 1088,
+  "id": "a6.rise",
+  "act": 6,
+  "desc": "f1088-1151: the camera starts to rise."
+ },
+ {
+  "frame": 1152,
+  "id": "a7.pullback",
+  "act": 7,
+  "desc": "f1152-1343: continuous accelerating pull-back from street level to a far frontal view of the whole world skyline, many rows deep, dissolving into red fog. Towers keep erupting; central towers grow taller to form a jagged envelope whose outline is the AD monogram."
+ },
+ {
+  "frame": 1152,
+  "id": "act7",
+  "act": 7,
+  "desc": "ACT VII - CLIMAX begins (f1152)"
+ },
+ {
+  "frame": 1344,
+  "id": "a7.surge",
+  "act": 7,
+  "desc": "f1344-1375: final surge."
+ },
+ {
+  "frame": 1376,
+  "id": "a7.silence",
+  "act": 7,
+  "desc": "HARD SILENCE. Everything outside the AD region sinks into the red (lights out). The AD region stands lit white, jagged and made of towers (only facade inside the AD shape is lit)."
+ },
+ {
+  "frame": 1408,
+  "id": "a8.A",
+  "act": 8,
+  "desc": "Dominant hit (A): the A region fuses: gaps close and the outline snaps to the exact A, including fillets and bite."
+ },
+ {
+  "frame": 1408,
+  "id": "act8",
+  "act": 8,
+  "desc": "ACT VIII - THE CADENCE begins (f1408)"
+ },
+ {
+  "frame": 1440,
+  "id": "a8.D",
+  "act": 8,
+  "desc": "Tonic hit (D): the D region fuses to the exact D. f1440-1503: dolly-zoom to orthographic as the fog clears; the form flattens into the exact 2D logo, white AD on red, centred."
+ },
+ {
+  "frame": 1504,
+  "id": "a8.sentence",
+  "act": 8,
+  "desc": "f1504-1535: \"EVERY SKYLINE / STARTS WITH AN\" sets in, and the AD shrinks into position as the final word at cap height."
+ },
+ {
+  "frame": 1536,
+  "id": "a8.click",
+  "act": 8,
+  "desc": "The AD clicks home as the final word of \"EVERY SKYLINE STARTS WITH AN [AD]\". Hold."
+ },
+ {
+  "frame": 1632,
+  "id": "a9.card",
+  "act": 9,
+  "desc": "f1632-1663: the sentence clears and the AD returns to hero size, with the wordmark \"AdvrtizX\" beneath."
+ },
+ {
+  "frame": 1632,
+  "id": "act9",
+  "act": 9,
+  "desc": "ACT IX - END CARD begins (f1632)"
+ },
+ {
+  "frame": 1664,
+  "id": "a9.tagline",
+  "act": 9,
+  "desc": "\"THE AI-FIRST AGENCY FOR THE WORLD'S REAL ESTATE\" (small, tracked). Hold with an imperceptible push-in. End-card red exactly #E80101."
+ },
+ {
+  "frame": 1799,
+  "id": "a9.end",
+  "act": 9,
+  "desc": "Last frame (f1799)."
+ }
+]
