@@ -38,8 +38,9 @@ def _t(n):
     return np.arange(n) / SR
 
 
-def _pitch_phase(f0, n, a=0.75, tau1=0.035, b=0.25, tau2=0.28):
-    """phase (radians) of f(t) = f0 (1 + a e^{-t/tau1} + b e^{-t/tau2}); f(0) = 2 f0 for a + b = 1."""
+def _pitch_phase(f0, n, a=0.80, tau1=0.030, b=0.20, tau2=0.11):
+    """phase (radians) of f(t) = f0 (1 + a e^{-t/tau1} + b e^{-t/tau2}); f(0) = 2 f0 for a + b = 1. With the defaults the
+    pitch has fallen 88 % of the way to f0 after 100 ms and is within 7 cents of f0 after 0.4 s (tuned, not glided)."""
     t = _t(n)
     return TWO_PI * f0 * (t + a * tau1 * (1 - np.exp(-t / tau1)) + b * tau2 * (1 - np.exp(-t / tau2)))
 
@@ -102,7 +103,7 @@ CONCRETE = (1.0, 1.52, 2.11, 2.83, 3.31, 4.17, 5.02, 6.35)                  # sl
 # 1  MONUMENTAL IMPACT
 # ======================================================================================
 def impact(f0=55.0, size=1.0, seed=0, t60=2.6, tail=3.6, steel_f=None, pan=0.0, crack=1.0, air=1.0, debris=1.0,
-           sub0=0.0, mid=1.0, groan=0.0, body_decay=1.0, drive=1.7):
+           sub0=0.0, mid=1.0, groan=0.0, body_decay=1.0, drive=1.7, sub_gain=0.92):
     """Tuned sub boom + inharmonic modal body + crack + air + rumble tail (+ debris, groan). `f0` is the sub's
     resting pitch (A1 = 55 Hz for A impacts, D1 = 36.71 Hz for D impacts). Peak ~1.0."""
     rng = rng_for(10, seed)
@@ -116,7 +117,7 @@ def impact(f0=55.0, size=1.0, seed=0, t60=2.6, tail=3.6, steel_f=None, pan=0.0, 
     sub = np.sin(ph) * env + 0.42 * np.sin(2 * ph) * exp_env(n, tau_a * 0.50, attack=0.0006)
     if sub0:
         sub += sub0 * np.sin(0.5 * ph) * exp_env(n, tau_a * 1.15, attack=0.004)
-    sub = tanh_os(sub / np.max(np.abs(sub)), drive)
+    sub_x = tanh_os(sub / np.max(np.abs(sub)), drive, q="lf")
 
     # --- body: low-passed noise punch + concrete modal bank (tuned: first mode = 2 f0) + steel ring
     nb = min(n, int(3.2 * SR))
@@ -156,7 +157,7 @@ def impact(f0=55.0, size=1.0, seed=0, t60=2.6, tail=3.6, steel_f=None, pan=0.0, 
     roll /= np.max(np.abs(roll)) + 1e-12
 
     out = np.zeros((n, 2))
-    _add(out, _mono2(sub), 0, 0.92)
+    _add(out, _mono2(sub_x), 0, sub_gain)
     _add(out, _mono2(punch / (np.max(np.abs(punch)) + 1e-12)), 0, 0.50 * mid)
     _add(out, concrete / (np.max(np.abs(concrete)) + 1e-12), 0, 0.30 * mid)
     _add(out, steel / (np.max(np.abs(steel)) + 1e-12), 0, 0.22 * mid)
@@ -227,7 +228,7 @@ def floor_slam(pitch_hz, spacing_s, k=0, n_total=22, seed=0):
     f_t = 50.0 + 95.0 * u
     ph = TWO_PI * f_t * (t + 0.012 * 0.9 * (1 - np.exp(-t / 0.012)))
     thud = np.sin(ph) * exp_env(n, float(np.clip(spacing_s * 0.9, 0.03, 0.13)), attack=0.0004)
-    thud = tanh_os(thud, 1.9)
+    thud = tanh_os(thud, 1.9, q="lf")
 
     clank = _modes_stereo(pitch_hz * np.array(STEEL[:4]), np.array([0.095, 0.058, 0.036, 0.021]) * tscale,
                           np.array([1.0, 0.65, 0.42, 0.28]), n, rng, jitter=0.0025, width=0.9)
@@ -259,7 +260,7 @@ def roar(dur_s, seed=0):
     g = np.zeros(n)
     for c in (-11, -4, 4, 11):
         g += osc_saw(f * 2 ** (c / 1200.0), n, phase0=float(rng.uniform(0, 1)))
-    g = tanh_os(g / 4.0, 2.4)
+    g = tanh_os(g / 4.0, 2.4, q="mid")
     g = svf4(g, 450.0 + 4800.0 * u ** 1.5, 1.2, "lp")
     nz = np.stack([svf4(white(n, rng), 300.0 + 6500.0 * u ** 1.6, 0.9, "lp") for _ in range(2)], axis=1)
     nz /= np.std(nz) + 1e-12
@@ -303,7 +304,7 @@ def lock(seed=0, f0=110.0, ring_s=0.9):
     knock = bp(white(nw, rng), 170.0, 900.0, 2) * np.exp(-_t(nw) / 0.028)
     thump_t = _t(int(0.6 * SR))
     thump = np.sin(TWO_PI * 55.0 * (thump_t + 0.02 * (1 - np.exp(-thump_t / 0.02)))) * exp_env(len(thump_t), 0.11, 0.0006)
-    thump = fade_io(tanh_os(thump, 1.8), 0.0, 0.08)
+    thump = fade_io(tanh_os(thump, 1.8, q="lf"), 0.0, 0.08)
 
     out = np.zeros((n, 2))
     _add(out, ring, 0, 0.55)
@@ -385,7 +386,7 @@ def _voice_pan(f, i, spread):
 
 def braam(freqs, dur_s, seed=0, size=1.0, cut_peak=3600.0, cut_end=620.0, cut_tau=0.48, hold=0.60, release=0.35,
           drive=2.1, growl=0.55, cents=(-11.0, -4.0, 5.0, 12.0), scoop=22.0, spread=0.85, chiff=0.35, q=1.15,
-          sub_hz=None, attack=0.005, formant=1.0):
+          sub_hz=None, attack=0.005, formant=1.0, sag_tau=0.5):
     """Band-limited saw stack (wavetable, harmonics below 0.46 SR), each chord tone detuned +-4..12 cents across
     the octaves of `freqs`, lip-slur pitch scoop, oversampled pre-drive, a 24 dB/oct low-pass with a FAST filter
     envelope (opens in ~15 ms, closes over cut_tau), brass formant peaks, a growl layer (flutter-tongued sub
@@ -405,8 +406,13 @@ def braam(freqs, dur_s, seed=0, size=1.0, cut_peak=3600.0, cut_end=620.0, cut_ta
         w = 1.0 / (1.0 + 0.18 * max(0.0, np.log2(max(f, 40.0) / 55.0) - 1.0))   # slight tilt, upper voices quieter
         for c in cents:
             ph0 = float(rng.uniform(0, 1))
-            v = osc_saw(f * slur * 2.0 ** (c / 1200.0), n, phase0=ph0) * w
-            # alternate the detuned twins across the image (low voices stay centred via _voice_pan)
+            # an ensemble is never sample-aligned: staggered entries (0-5 ms, none for the sub voices) and a slow,
+            # independent pitch drift per voice (+-2.5 cents, 0.4-1.1 Hz)
+            dly = 0 if f < 120.0 else int(rng.uniform(0.0, 0.005) * SR)
+            drift = 1.0 + 0.00145 * np.sin(TWO_PI * rng.uniform(0.4, 1.1) * t + rng.uniform(0, TWO_PI))
+            v = osc_saw(f * slur * drift * 2.0 ** (c / 1200.0), n, phase0=ph0) * w
+            if dly:
+                v = np.concatenate([np.zeros(dly), v[:-dly]])
             sgn = 1.0 if (k % 2 == 0) else -1.0
             gl2, gr2 = pan_gains(np.clip(pn + 0.35 * sgn * (f > 150), -1, 1))
             L += v * gl2
@@ -435,7 +441,7 @@ def braam(freqs, dur_s, seed=0, size=1.0, cut_peak=3600.0, cut_end=620.0, cut_ta
     rate = 41.0 * (1.0 + 0.25 * np.cumsum(rng.standard_normal(n)) / np.sqrt(n) * 0.05)
     flutter = 0.5 + 0.5 * np.sin(TWO_PI * np.cumsum(rate) / SR)
     gr_ = osc_saw(gf * slur, n) + 0.8 * osc_saw(gf * 2.0 * slur * 1.0035, n)
-    gr_ = tanh_os(gr_ * (0.7 + 0.8 * flutter), 2.6)
+    gr_ = tanh_os(gr_ * (0.7 + 0.8 * flutter), 2.6, q="lf")
     gr_ = svf4(gr_, np.maximum(fc * 0.45, 160.0), 1.0, "lp")
     gr_ *= (0.45 + 0.55 * (1.0 - np.exp(-t / 0.02))) * (0.55 + 0.45 * np.exp(-t / 0.9))
     out = sf / (np.max(np.abs(sf)) + 1e-12)
@@ -448,7 +454,7 @@ def braam(freqs, dur_s, seed=0, size=1.0, cut_peak=3600.0, cut_end=620.0, cut_ta
         out[:nc] += chiff * 0.5 * ch / (np.max(np.abs(ch)) + 1e-12)
 
     # amplitude: instant attack, sag to `hold`, long raised-cosine release
-    sag = hold + (1.0 - hold) * np.exp(-t / 0.5)
+    sag = hold + (1.0 - hold) * np.exp(-t / sag_tau)
     env = sag * (1.0 - np.exp(-t / attack)) if attack > 0 else sag
     nd = int(dur_s * SR)
     env[nd:] *= 0.5 + 0.5 * np.cos(np.pi * np.minimum((np.arange(n - nd) + 1) / (n - nd + 1), 1.0))
@@ -468,7 +474,7 @@ def stab(freqs, dur_s=0.34, seed=0, bright=1.0, release=0.30, size=1.0):
 # ======================================================================================
 # 6  DRUMS (cinematic: deep, long-tailed, hall-fed - not EDM)
 # ======================================================================================
-def kick(seed=0, f_start=150.0, f_end=45.0, tau_p=0.021, decay=0.20, click=0.42, drive=1.9, tail=0.70, thump=0.0):
+def kick(seed=0, f_start=150.0, f_end=45.0, tau_p=0.021, decay=0.16, click=0.42, drive=1.9, tail=0.55, thump=0.0):
     """sine 150 -> 45 Hz, 2nd harmonic, oversampled saturation, beater click (HP noise) + 'tok' (3-5 kHz).
     A punch layer (short, saturated) over a boom layer (long, cleaner); `thump` adds a longer sub bloom for the
     big downbeats."""
@@ -476,9 +482,9 @@ def kick(seed=0, f_start=150.0, f_end=45.0, tau_p=0.021, decay=0.20, click=0.42,
     n = int(tail * SR)
     t = _t(n)
     ph = TWO_PI * (f_end * t + (f_start - f_end) * tau_p * (1 - np.exp(-t / tau_p)))
-    punch = tanh_os(np.sin(ph) + 0.22 * np.sin(2 * ph), drive) * exp_env(n, decay * 0.42, 0.0004)
+    punch = tanh_os(np.sin(ph) + 0.22 * np.sin(2 * ph), drive, q="lf") * exp_env(n, decay * 0.42, 0.0004)
     boom = np.sin(TWO_PI * f_end * (t + 0.0)) * exp_env(n, decay, 0.0035) * 0.55
-    boom = tanh_os(boom, 1.25)
+    boom = tanh_os(boom, 1.25, q="lf")
     body = punch + boom
     if thump:
         body += thump * np.sin(TWO_PI * f_end * t) * exp_env(n, decay * 1.9, 0.004)
@@ -498,7 +504,7 @@ def kick(seed=0, f_start=150.0, f_end=45.0, tau_p=0.021, decay=0.20, click=0.42,
 _MEMB = (1.0, 1.593, 2.136, 2.296, 2.653, 2.917, 3.156)          # circular membrane modes
 
 
-def taiko(f0=55.0, decay=1.2, seed=0, slap=1.0, size=1.0, pan=0.0):
+def taiko(f0=55.0, decay=1.2, seed=0, slap=1.0, size=1.0, pan=0.0, sub_amt=1.2, sub_decay=0.85):
     """Membrane modal bank (1 : 1.59 : 2.14 : 2.30 : 2.65 : 2.92 : 3.16) with the strike-time pitch drop, a deep
     fundamental, noise body and a skin slap. Long decay; tuned to the chord context via f0."""
     rng = rng_for(61, seed)
@@ -514,8 +520,8 @@ def taiko(f0=55.0, decay=1.2, seed=0, slap=1.0, size=1.0, pan=0.0):
             fr = f0 * r * (1.0 + 0.004 * rng.uniform(-1, 1))
             y += a * np.sin(TWO_PI * fr * (t + gl)) * np.exp(-np.minimum(t / tau, 60.0))
         out[:, ch] = y
-    sub = np.sin(TWO_PI * f0 * (t + gl)) * exp_env(n, decay * 0.85, 0.0007)
-    out += 1.2 * _mono2(sub)
+    sub = np.sin(TWO_PI * f0 * (t + gl)) * exp_env(n, decay * sub_decay, 0.0007)
+    out += sub_amt * _mono2(sub)
     nb = int(0.5 * SR)
     nz = bp(white(nb, rng), f0 * 1.5, f0 * 7.0, 2) * np.exp(-_t(nb) / 0.06)
     out[:nb] += 0.5 * _mono2(nz / (np.max(np.abs(nz)) + 1e-12))
@@ -523,7 +529,7 @@ def taiko(f0=55.0, decay=1.2, seed=0, slap=1.0, size=1.0, pan=0.0):
     sl = _pair_noise_burst(ns, rng, 1200.0, 3800.0, 0.007, 2, 0.8)
     out[:ns] += 0.45 * slap * sl / (np.max(np.abs(sl)) + 1e-12)
     out[:, 0], out[:, 1] = out[:, 0], out[:, 1]
-    out = tanh_os(out / np.max(np.abs(out)), 1.6)
+    out = tanh_os(out / np.max(np.abs(out)), 1.6, q="lf")
     out = fade_io(out, 0.00005, 0.35)
     return _norm_peak(_pan_apply(out, pan), 1.0)
 
@@ -625,18 +631,17 @@ def bass_note(f, dur_s, accent=1.0, seed=0, cut_hi=2300.0, cut_lo=210.0, filt_ta
     fc = cut_lo + (cut_hi * (0.45 + 0.55 * accent) - cut_lo) * np.exp(-t / filt_tau)
     saw = svf4(saw, fc, 1.6, "lp")
     x = sub_mix * sine + saw_mix * saw * (0.7 + 0.3 * accent)
-    x = tanh_os(x * 0.7, drive)
-    env = np.ones(n)
+    x = tanh_os(x * 0.7, drive, q="lf")
+    env = np.exp(-np.arange(n) / (SR * max(dur_s * 1.15, 0.06)))
     na = int(0.003 * SR)
-    env[:na] = 0.5 - 0.5 * np.cos(np.pi * np.arange(na) / na)
+    env[:na] *= 0.5 - 0.5 * np.cos(np.pi * np.arange(na) / na)
     nr = int(release * SR)
     nd = n - nr
-    env[nd:] = 0.5 + 0.5 * np.cos(np.pi * (np.arange(nr) + 1) / (nr + 1))
-    env[:nd] *= np.exp(-np.arange(nd) / (SR * max(dur_s * 2.2, 0.08)))
+    env[nd:] *= 0.5 + 0.5 * np.cos(np.pi * (np.arange(nr) + 1) / (nr + 1))      # release multiplies the decay: no step
     return x * env
 
 
-def pedal_drone(dur_s, seed=0, f=55.0, fifth=True, grit=0.25):
+def pedal_drone(dur_s, seed=0, f=55.0, fifth=True, grit=0.25, fade_in=0.5, fade_out=0.5):
     """A pedal drone: A1 + A2 (+ E3) as detuned pairs that beat slowly, plus a rumble of band-limited brown noise.
     Mono-compatible below 120 Hz; slow breathing. Used for the red void and the sustained pedal."""
     rng = rng_for(71, seed)
@@ -660,7 +665,7 @@ def pedal_drone(dur_s, seed=0, f=55.0, fifth=True, grit=0.25):
     out += grit * 0.35 * _mono2(r)
     breathe = 1.0 + 0.10 * np.sin(TWO_PI * 0.071 * t + 0.6) + 0.06 * np.sin(TWO_PI * 0.173 * t + 1.9)
     out *= breathe[:, None]
-    out = fade_io(out, 0.5, 0.5)
+    out = fade_io(out, fade_in, fade_out)
     return out / (np.max(np.abs(out)) + 1e-12)
 
 
@@ -768,7 +773,7 @@ def shepard(dur_s, seed=0, center=620.0, sigma_oct=1.45, r0=0.22, r1=0.85, f_lo=
             out[:, ch] += w * np.sin(ph)
     out /= np.maximum(np.max(ws), 1e-9)
     amp = dbl(amp0_db + (amp1_db - amp0_db) * (t / T) ** 1.5)
-    out = tanh_os(out * 1.1, drive) * amp[:, None]
+    out = tanh_os(out * 1.1, drive, q="mid") * amp[:, None]
     out = fade_io(out, 0.05, 0.003)
     return out / (np.max(np.abs(out)) + 1e-12)
 
@@ -841,7 +846,7 @@ def stamp(note, seed=0, size=1.0, note_level=0.55, bright=1.0):
     nt = int(0.30 * SR)
     tt = _t(nt)
     thud = np.sin(TWO_PI * 96.0 * (tt + 0.45 * 0.02 * (1 - np.exp(-tt / 0.02)))) * exp_env(nt, 0.075, 0.0004)
-    thud = tanh_os(thud, 1.7)
+    thud = tanh_os(thud, 1.7, q="lf")
     nbd = int(0.12 * SR)
     bodyn = bp(white(nbd, rng), 160.0, 620.0, 2) * np.exp(-_t(nbd) / 0.03)
     npn = int(0.35 * SR)

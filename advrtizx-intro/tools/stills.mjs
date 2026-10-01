@@ -22,7 +22,7 @@ else if (arg('range')) { const [a, b] = String(arg('range')).split('-').map(Numb
 if (!frames.length) { console.error('usage: node tools/stills.mjs --frames 0,3,12  |  --range 0-127 --step 8   [--acts 1,2] [--scale 1] [--k N] [--probe x,y;x,y]'); process.exit(2); }
 const outDir = path.resolve(process.cwd(), arg('out', path.join(ROOT, 'out/stills'))); fs.mkdirSync(outDir, { recursive: true });
 const prefix = arg('prefix', 'f');
-const query = {}; if (arg('acts')) query.acts = arg('acts'); if (arg('k')) query.k = arg('k'); if (arg('kmin')) query.kmin = arg('kmin'); if (arg('msaa')) query.msaa = arg('msaa');
+const query = {}; if (arg('acts') !== undefined && arg('acts') !== true) query.acts = arg('acts'); if (arg('acts') === 'none') query.acts = ''; if (arg('dev')) query.dev = arg('dev'); if (arg('q')) for (const [k, v] of new URLSearchParams(String(arg('q')))) query[k] = v; if (arg('k')) query.k = arg('k'); if (arg('kmin')) query.kmin = arg('kmin'); if (arg('msaa')) query.msaa = arg('msaa');
 const probes = arg('probe') ? String(arg('probe')).split(';').map((s) => s.split(',').map(Number)) : null;
 
 const pending = new Map();

@@ -11,6 +11,12 @@ import { GLSL_COMMON, GLSL_RISE, makeMaterial, makeShadowMaterial } from '../eng
 import { crownGeometry, crownSize, CROWN_KINDS } from './logo.js';
 
 const EASE_KIND = { out: 0, slam: 1, back: 2, linear: 3 };
+/** Floor-reflection twins: the same geometry mirrored about y = 0, drawn (layer 2) into the engine's reflection target in a pass of their own;
+    makeGround()/makeWater() shaders then sample that target at the same screen position. Opaque and depth-tested, so occlusion is correct. */
+export function mirrorMaterial({ vert, frag, defines = {}, uniforms = {}, reflect }) {
+  return makeMaterial({ vert, frag, defines: { ...defines, MIRROR: 1 }, uniforms: { ...uniforms, uReflect: { value: reflect } }, side: THREE.BackSide });
+}
+const asTwin = (m) => { m.frustumCulled = false; m.renderOrder = 6; m.layers.set(2); return m; };
 
 /* ──────────────────────────────── geometry ──────────────────────────────── */
 
@@ -68,12 +74,33 @@ void main() {
 #endif
   vec4 W = modelMatrix * vec4(wp, 1.0);
   vWorld = W.xyz;
+#ifdef MIRROR
+  W.y = -W.y;                              // planar reflection about the ground plane y = 0
+#endif
   gl_Position = projectionMatrix * viewMatrix * W;
 }`;
 
-const FRAG_SHAFT = /* glsl */ `
+/* final colour: fog, clamp; the MIRROR variant is the floor reflection (fogged along the reflected ray, fresnel-ish strength, fading with height) */
+const GLSL_OUT = /* glsl */ `
+#ifdef MIRROR
+  vec3 mp = vec3(vWorld.x, -vWorld.y, vWorld.z);
+  col = applyFog(col, mp);
+  float cosT = abs(normalize(mp - cameraPosition).y);
+  float refl = uReflect * (0.50 + 0.50 * pow(1.0 - cosT, 2.0)) * exp(-vWorld.y / 520.0);
+  outColor = vec4(min(col, vec3(1.0)) * refl, refl);   // premultiplied
+#else
+  col = applyFog(col, vWorld);
+  outColor = vec4(min(col, vec3(1.0)), 1.0);
+#endif`;
+const REFL_UNI = /* glsl */ `
+#ifdef MIRROR
+uniform float uReflect;
+#endif`;
+
+const FRAG_SHAFT = (/* glsl */ `
 precision highp float;
 ${GLSL_COMMON}
+${REFL_UNI}
 in vec3 vWorld; in vec3 vN; in vec3 vLoc; in vec4 vInfo; flat in float vFace;
 out vec4 outColor;
 #ifdef JACK
@@ -101,9 +128,8 @@ void main() {
   }
   float ao = mix(0.50, 1.0, smoothstep(0.0, 60.0, vWorld.y));
   vec3 col = lightSurface(vec3(alb), n, vWorld, ao);
-  col = applyFog(col, vWorld);
-  outColor = vec4(min(col, vec3(1.0)), 1.0);
-}`;
+  REFLECT_OUT
+}`).replace('REFLECT_OUT', GLSL_OUT);
 
 const VERT_CROWN = /* glsl */ `
 in vec4 aPos; in vec4 aDim; in vec4 aRise; in vec4 aDrop; in vec4 aCrown;
@@ -139,21 +165,24 @@ void main() {
   vN = mat3(modelMatrix) * vec3(ca * nl.x + sa * nl.z, nl.y, -sa * nl.x + ca * nl.z);
   vec4 W = modelMatrix * vec4(wp, 1.0);
   vWorld = W.xyz;
+#ifdef MIRROR
+  W.y = -W.y;                              // planar reflection about the ground plane y = 0
+#endif
   gl_Position = projectionMatrix * viewMatrix * W;
 }`;
 
-const FRAG_CROWN = /* glsl */ `
+const FRAG_CROWN = (/* glsl */ `
 precision highp float;
 ${GLSL_COMMON}
+${REFL_UNI}
 in vec3 vWorld; in vec3 vN;
 out vec4 outColor;
 void main() {
   vec3 n = normalize(vN);
   float ao = mix(0.55, 1.0, smoothstep(0.0, 60.0, vWorld.y));
   vec3 col = lightSurface(vec3(1.0), n, vWorld, ao);
-  col = applyFog(col, vWorld);
-  outColor = vec4(min(col, vec3(1.0)), 1.0);
-}`;
+  REFLECT_OUT
+}`).replace('REFLECT_OUT', GLSL_OUT);
 
 /* ──────────────────────────────── TowerSet ──────────────────────────────── */
 
@@ -161,9 +190,9 @@ const DEFAULT_SPEC = { x: 0, z: 0, y: 0, w: 60, d: 40, h: 200, rot: 0, crown: nu
   t0: -1e6, dur: 14, land: null, ease: 'slam', mode: 'slide', pitch: 4.2, seed: 0, tint: 0, drop: 0, dropDur: 4, riseH: 0 };
 
 export class TowerSet {
-  /** opts: {lod: 0|1|2 crown mesh detail, shadow: cast shadows (default true), name} */
-  constructor({ lod = 0, shadow = true, name = 'towers' } = {}) {
-    this.lod = lod; this.castShadow = shadow; this.specs = []; this.group = new THREE.Group(); this.group.name = name;
+  /** opts: {lod: 0|1|2 crown mesh detail, shadow: cast shadows (default true), name, reflect: 0..1 glossy-floor reflection strength (needs makeGround({reflect:true}); costs a second draw)} */
+  constructor({ lod = 0, shadow = true, name = 'towers', reflect = 0 } = {}) {
+    this.reflect = reflect; this.lod = lod; this.castShadow = shadow; this.specs = []; this.group = new THREE.Group(); this.group.name = name;
     this.built = false; this.meshes = [];
   }
   /** Add one tower. Returns its index. Spec fields (all optional): x,z,y, w (width, m), d (depth, m), h (shaft height, m), rot (rad about y),
@@ -212,20 +241,22 @@ export class TowerSet {
       g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1e7);
     };
     const instGeo = (base) => { const g = new THREE.InstancedBufferGeometry(); g.index = base.index; for (const k of Object.keys(base.attributes)) g.setAttribute(k, base.attributes[k]); return g; };
-    const mesh = (geo, mat, shadowMat, order) => {
+    const mesh = (geo, mat, shadowMat, order, mirrorOf) => {
       const m = new THREE.Mesh(geo, mat); m.frustumCulled = false; m.renderOrder = order;
       if (this.castShadow) { m.userData.shadowMaterial = shadowMat; m.layers.enable(1); }
-      this.group.add(m); this.meshes.push(m); return m;
+      this.group.add(m); this.meshes.push(m);
+      if (this.reflect > 0 && mirrorOf) { const mm = asTwin(new THREE.Mesh(geo, mirrorMaterial({ vert: mirrorOf[0], frag: mirrorOf[1], reflect: this.reflect }))); this.group.add(mm); this.meshes.push(mm); }
+      return m;
     };
     // shafts
     const all = this.specs.map((_, i) => i);
     if (n) { const dS = mk(all), gS = instGeo(shaftBase()); attach(gS, dS, false);
-      mesh(gS, makeMaterial({ vert: VERT_SHAFT, frag: FRAG_SHAFT }), makeShadowMaterial({ vert: VERT_SHAFT }), 1); }
+      mesh(gS, makeMaterial({ vert: VERT_SHAFT, frag: FRAG_SHAFT }), makeShadowMaterial({ vert: VERT_SHAFT }), 1, [VERT_SHAFT, FRAG_SHAFT]); }
     // crowns, one instanced mesh per kind
     for (const kind of n ? CROWN_KINDS : []) {
       const idx = all.filter((i) => this.specs[i].crown === kind); if (!idx.length) continue;
       const d = mk(idx), g = instGeo(crownGeometry(kind, this.lod)); attach(g, d, true);
-      mesh(g, makeMaterial({ vert: VERT_CROWN, frag: FRAG_CROWN }), makeShadowMaterial({ vert: VERT_CROWN }), 2);
+      mesh(g, makeMaterial({ vert: VERT_CROWN, frag: FRAG_CROWN }), makeShadowMaterial({ vert: VERT_CROWN }), 2, [VERT_CROWN, FRAG_CROWN]);
     }
     for (const pr of this.prisms || []) {
       const s = pr.s; if (s.land == null || s.land === DEFAULT_SPEC.land) s.land = s.t0 + s.dur;
@@ -239,6 +270,7 @@ export class TowerSet {
       const m = new THREE.Mesh(g, makeMaterial({ vert: VERT_CROWN, frag: FRAG_CROWN })); m.frustumCulled = false; m.renderOrder = 2;
       if (this.castShadow) { m.userData.shadowMaterial = makeShadowMaterial({ vert: VERT_CROWN }); m.layers.enable(1); }
       this.group.add(m); this.meshes.push(m);
+      if (this.reflect > 0) { const mm = asTwin(new THREE.Mesh(g, mirrorMaterial({ vert: VERT_CROWN, frag: FRAG_CROWN, reflect: this.reflect }))); this.group.add(mm); this.meshes.push(mm); }
     }
     this.built = true;
     return this;
@@ -249,13 +281,15 @@ export class TowerSet {
 /* ──────────────────────────────── JackTower (Act I hero) ──────────────────────────────── */
 
 /** Jack-up construction. At each hit a new floor module thrusts up out of the ground BENEATH the stack and locks, lifting the
-    stack above it by one module. The shaft is one box whose top is top(t); its facade is anchored to the top so it rides up with the
-    crown, and the module seams (grooves) show the construction rhythm. */
+    stack above it by one module. The thrust accelerates and LOCKS (stops dead) exactly ON the hit frame, so the impact lands on the
+    audio transient; nothing moves after the last lock. The shaft is one box whose top is top(t); its facade is anchored to the top so it
+    rides up with the crown, and the module seams (grooves) show the construction rhythm. */
 export class JackTower {
-  /** opts: {x,z,w,d, crown, hits: [frames], modules: [metres per hit], dur: [frames per hit] | number, ease, pitch, crownScale} */
-  constructor({ x = 0, z = 0, w = 100, d = 60, crown = 'A', hits, modules, dur = 4, pitch = 4.2, crownScale = 1, crownDepth = null } = {}) {
-    this.x = x; this.z = z; this.w = w; this.d = d; this.crownKind = crown; this.hits = hits.slice(); this.modules = modules.slice(); this.pitch = pitch;
-    this.durs = Array.isArray(dur) ? dur.slice() : this.hits.map((_, i) => Math.min(dur, i + 1 < this.hits.length ? (this.hits[i + 1] - this.hits[i]) * 1.15 : dur));
+  /** opts: {x,z,w,d, crown, hits: [LOCK frames], modules: [metres per hit], dur: [frames of thrust per hit] | number (max), pitch, crownScale} */
+  constructor({ x = 0, z = 0, w = 100, d = 60, crown = 'A', hits, modules, dur = 4, pitch = 4.2, crownScale = 1, crownDepth = null, accel = 2.2, reflect = 0 } = {}) {
+    this.x = x; this.z = z; this.w = w; this.d = d; this.crownKind = crown; this.hits = hits.slice(); this.modules = modules.slice(); this.pitch = pitch; this.accel = accel;
+    // thrust duration: at most `dur`, never longer than the gap to the previous lock (so fast hits merge into one continuous surge)
+    this.durs = Array.isArray(dur) ? dur.slice() : this.hits.map((f, i) => Math.min(dur, i > 0 ? Math.max(1, (f - this.hits[i - 1]) * 1.0) : dur));
     this.crownScale = crownScale; this.crownDepth = crownDepth ?? d;
     this.crownS = (w / crownSize(crown).width) * crownScale;
     this.crownH = crownSize(crown).height * this.crownS;
@@ -275,16 +309,19 @@ export class JackTower {
     this.shaft = new THREE.Mesh(mkGeo(shaftBase(), false), shaftMat); this.shaft.frustumCulled = false; this.shaft.renderOrder = 1;
     this.crown = new THREE.Mesh(mkGeo(crownGeometry(crown, 0), true), crownMat); this.crown.frustumCulled = false; this.crown.renderOrder = 2;
     for (const [m, s] of [[this.shaft, shaftSh], [this.crown, crownSh]]) { m.userData.shadowMaterial = s; m.layers.enable(1); this.group.add(m); }
+    if (reflect > 0) {   // floor reflection twins (need makeGround({reflect:true}))
+      const ms = new THREE.Mesh(this.shaft.geometry, mirrorMaterial({ vert: VERT_SHAFT, frag: FRAG_SHAFT, defines: { JACK: 1 }, uniforms: { uTop: this.uTop, uSeam: this.uSeam }, reflect }));
+      const mc = new THREE.Mesh(this.crown.geometry, mirrorMaterial({ vert: VERT_CROWN, frag: FRAG_CROWN, defines: { HERO: 1 }, uniforms: { uBaseY: this.uBaseY }, reflect }));
+      for (const m of [ms, mc]) { asTwin(m); this.group.add(m); }
+    }
   }
-  /** Height of the stack top (crown base) at frame t. Pure. Each hit lifts by modules[i] with an ease that locks hard. */
+  /** Height of the stack top (crown base) at frame t. Pure. Module i thrusts over [hit_i - dur_i, hit_i] (accelerating) and locks on hit_i. */
   top(t) {
     let y = 0;
     for (let i = 0; i < this.hits.length; i++) {
-      const p = Math.min(1, Math.max(0, (t - this.hits[i]) / this.durs[i]));
+      const p = Math.min(1, Math.max(0, (t - (this.hits[i] - this.durs[i])) / this.durs[i]));
       if (p <= 0) break;
-      const u = 1 - p, e = 1 - u * u * u * u;                                   // fast launch
-      const o = Math.sin(Math.min(1, Math.max(0, (p - 0.55) / 0.45)) * Math.PI) * 0.014 * (1 - p); // hard lock, tiny overshoot
-      y += this.modules[i] * (e + o);
+      y += this.modules[i] * Math.pow(p, this.accel);
     }
     return y;
   }
@@ -295,7 +332,6 @@ export class JackTower {
     // seams: distance below the top at which each module ends (module 0 = first hit = right under the crown)
     let s = 0; this._seam.fill(-1e5);
     for (let i = 0; i < Math.min(this.modules.length, 24); i++) { s += this.modules[i]; this._seam[i] = s; }
-    // the seam of a module only exists once that module is above ground; hidden ones are below the top anyway
     return { top, crownBase: top + lift };
   }
   get height() { return this.total + this.crownH; }

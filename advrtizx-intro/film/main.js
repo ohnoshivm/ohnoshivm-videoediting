@@ -29,7 +29,7 @@ window.__boot = (async () => {
     await engine.init(canvas, async (ctx) => {
       Object.assign(ctx, { util, camera, cue, cues, cueFrames, hasCue, allCues, kits: { logo, towers, world, type, city } });
     });
-    const only = q.get('acts') ? new Set(q.get('acts').split(',').map((s) => 'act' + s.replace(/^act/, ''))) : null;
+    const only = q.has('acts') ? new Set(q.get('acts').split(',').filter(Boolean).map((s) => 'act' + s.replace(/^act/, ''))) : null;
     const strict = q.has('strict');
     for (const name of SCENE_FILES) {
       if (only && !only.has(name)) continue;
@@ -43,6 +43,8 @@ window.__boot = (async () => {
         if (strict) throw e;
       }
     }
+    // dev scenes (film/dev/NAME.js): kit tests that are not part of the film. ?dev=name
+    if (q.get('dev')) { for (const name of q.get('dev').split(',')) { const mod = await import(`./dev/${name}.js`); for (const fac of [].concat(mod.default)) await engine.registerScene(fac, 'dev.' + name); } }
     window.seek = (f) => { engine.seek(f); };
     window.__info = () => ({ W: engine.W, H: engine.H, gl: engine.glInfo, scenes: engine.scenes.map((s) => ({ id: s.id, start: s.start, end: s.end })), fonts: { total: fontInfo.total, families: fontInfo.families } });
     window.__K = () => engine.stats.K;

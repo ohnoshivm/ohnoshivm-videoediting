@@ -26,6 +26,9 @@ export const U = {
   uRing: { value: [V4(0, 0, 0, 0), V4(0, 0, 0, 0), V4(0, 0, 0, 0), V4(0, 0, 0, 0)] },   // x, z, radius, strength
   uRingP: { value: [V4(1, 0, 0, 0), V4(1, 0, 0, 0), V4(1, 0, 0, 0), V4(1, 0, 0, 0)] },  // width, tail, 0, 0
   uGround: { value: V3(0.5, 0, 0) },            // ground albedo (linear)
+  uReflTex: { value: null },                    // planar reflection of the skyline (premultiplied rgb, a = strength); sampled at the same screen position
+  uReflOn: { value: 0 },                        // 1 when this sub-frame rendered a reflection pass
+  uRes: { value: new THREE.Vector2(1920, 1080) }, // render resolution in px (current viewport)
 };
 
 const f9 = (x) => x.toFixed(9);
@@ -125,13 +128,14 @@ vec3 srgbDecode(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.
 `;
 
 /** Build a ShaderMaterial on the shared uniforms. Always GLSL3. */
-export function makeMaterial({ vert, frag, uniforms = {}, defines = {}, side = THREE.FrontSide, transparent = false, depthWrite = true, depthTest = true, blending = THREE.NormalBlending, extensions }) {
+export function makeMaterial({ vert, frag, uniforms = {}, defines = {}, side = THREE.FrontSide, transparent = false, depthWrite = true, depthTest = true, blending = THREE.NormalBlending, extra = null }) {
   const m = new THREE.ShaderMaterial({
     glslVersion: THREE.GLSL3,
     uniforms: Object.assign({}, U, uniforms),
     vertexShader: vert, fragmentShader: frag, defines, side, transparent, depthWrite, depthTest, blending,
   });
   m.toneMapped = false; m.fog = false;
+  if (extra) Object.assign(m, extra);
   return m;
 }
 

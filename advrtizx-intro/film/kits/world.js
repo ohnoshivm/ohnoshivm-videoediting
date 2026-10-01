@@ -18,10 +18,12 @@ uniform vec3 uGround;
 uniform vec4 uRing[4];
 uniform vec4 uRingP[4];
 uniform vec3 uGroundTint;
+uniform sampler2D uReflTex; uniform float uReflOn; uniform vec2 uRes;
 in vec3 vWorld; out vec4 outColor;
 void main() {
   vec3 n = vec3(0.0, 1.0, 0.0);
   vec3 col = lightSurface(uGround * uGroundTint, n, vWorld, 1.0);
+  if (uReflOn > 0.5) { vec4 rf = texture(uReflTex, gl_FragCoord.xy / uRes); col = col * (1.0 - rf.a) + rf.rgb; }   // glossy floor: premultiplied skyline reflection
   // shock rings: displaced fog. Crisp outer edge, long soft tail inside, a hairline of white at the front.
   for (int i = 0; i < 4; i++) {
     float R = uRing[i].z;
@@ -43,9 +45,10 @@ void main() {
 
 /** The ground: a huge flat disc at y = 0 that receives the key's shadows, takes shock rings from ctx.env.rings, and dissolves into fog. */
 export function makeGround({ radius = 40000, y = 0, tint = [1, 1, 1] } = {}) {
+  // The ground always shows the planar reflection when the engine rendered one this sub-frame, i.e. when a TowerSet/JackTower was built with reflect > 0.
   const g = new THREE.CircleGeometry(radius, 64); g.rotateX(-Math.PI / 2);
   const m = makeMaterial({ vert: VERT_GROUND, frag: FRAG_GROUND, uniforms: { uGroundTint: { value: new THREE.Vector3(...tint) } } });
-  const mesh = new THREE.Mesh(g, m); mesh.position.y = y; mesh.frustumCulled = false; mesh.renderOrder = 0;
+  const mesh = new THREE.Mesh(g, m); mesh.position.y = y; mesh.frustumCulled = false; mesh.renderOrder = 3;   // after the towers: early-z skips covered ground
   mesh.userData.groundMaterial = m;
   return mesh;
 }
@@ -53,7 +56,8 @@ export function makeGround({ radius = 40000, y = 0, tint = [1, 1, 1] } = {}) {
 const FRAG_WATER = /* glsl */ `
 precision highp float;
 ${GLSL_COMMON}
-uniform vec3 uWaterTint; uniform float uGlint;
+uniform vec3 uWaterTint; uniform float uGlint; uniform float uSkyMix;
+uniform sampler2D uReflTex; uniform float uReflOn; uniform vec2 uRes;
 in vec3 vWorld; out vec4 outColor;
 float ripple(vec2 p, float t) {
   return sin(p.x * 0.9 + t * 0.21) * 0.5 + sin(p.y * 1.3 - t * 0.17 + p.x * 0.4) * 0.3 + sin((p.x + p.y) * 2.1 + t * 0.33) * 0.2;
@@ -65,8 +69,9 @@ void main() {
   vec3 n = normalize(vec3((h0 - hx) * 0.18, 1.0, (h0 - hz) * 0.18));
   vec3 V = normalize(cameraPosition - vWorld);
   vec3 base = uWaterTint * mix(uAmbDown, uAmbUp, 0.8);
-  float fres = pow(1.0 - max(dot(V, n), 0.0), 3.0);
-  vec3 col = mix(base, uFogColor * 0.9, fres * 0.6);
+  float fres = pow(1.0 - max(dot(V, n), 0.0), 2.0);
+  vec3 col = mix(base, uFogColor, clamp(0.25 + fres * 0.75, 0.0, 1.0) * uSkyMix);
+  if (uReflOn > 0.5) { vec2 duv = (gl_FragCoord.xy + vec2(n.x, n.z) * 90.0 * vec2(1.0, 1.0)) / uRes; vec4 rf = texture(uReflTex, duv); col = col * (1.0 - rf.a) + rf.rgb; }   // skyline reflected in the water, rippled
   vec3 R = reflect(-V, n);
   float spec = pow(max(dot(R, uSunDir), 0.0), 380.0) * uGlint;
   float dist = length(cameraPosition - vWorld);
@@ -76,19 +81,19 @@ void main() {
 }`;
 
 /** Water from any flat geometry (y is baked into the geometry). */
-export function makeWaterMesh(geometry, { tint = [0.62, 0, 0], glint = 1 } = {}) {
-  const m = makeMaterial({ vert: VERT_GROUND, frag: FRAG_WATER, uniforms: { uWaterTint: { value: new THREE.Vector3(...tint) }, uGlint: { value: glint } } });
+export function makeWaterMesh(geometry, { tint = [0.40, 0, 0], glint = 1, reflect = false, skyMix = 0.8 } = {}) {
+  const m = makeMaterial({ vert: VERT_GROUND, frag: FRAG_WATER, uniforms: { uWaterTint: { value: new THREE.Vector3(...tint) }, uGlint: { value: glint }, uSkyMix: { value: skyMix } } });
   m.side = THREE.DoubleSide;
   const mesh = new THREE.Mesh(geometry, m); mesh.frustumCulled = false; mesh.renderOrder = 0.5; m.polygonOffset = true; m.polygonOffsetFactor = -2; m.polygonOffsetUnits = -2;
   return mesh;
 }
 /** A rectangle of water (x0..x1, z0..z1) at y: deep red with white sun glints. Draws just above the ground. */
-export function makeWater({ x0 = -500, x1 = 500, z0 = -500, z1 = 500, y = -0.2, tint, glint } = {}) {
+export function makeWater({ x0 = -500, x1 = 500, z0 = -500, z1 = 500, y = 0.25, tint, glint, reflect, skyMix } = {}) {
   const g = new THREE.PlaneGeometry(x1 - x0, z1 - z0); g.rotateX(-Math.PI / 2); g.translate((x0 + x1) / 2, y, (z0 + z1) / 2);
-  return makeWaterMesh(g, { tint, glint });
+  return makeWaterMesh(g, { tint, glint, reflect, skyMix });
 }
 /** A river: a ribbon of constant width along a polyline [[x,z],...] (smooth with many points). */
-export function makeRiver(points, width = 120, { y = -0.2, tint, glint } = {}) {
+export function makeRiver(points, width = 120, { y = 0.25, tint, glint, reflect, skyMix } = {}) {
   const P = [], I = [];
   for (let i = 0; i < points.length; i++) {
     const a = points[Math.max(0, i - 1)], b = points[Math.min(points.length - 1, i + 1)];
@@ -97,10 +102,10 @@ export function makeRiver(points, width = 120, { y = -0.2, tint, glint } = {}) {
     if (i) { const k = (i - 1) * 2; I.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
   }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setIndex(I);
-  return makeWaterMesh(g, { tint, glint });
+  return makeWaterMesh(g, { tint, glint, reflect, skyMix });
 }
 /** A disc of water (a bay). */
-export function makeBay(cx, cz, r, { y = -0.2, tint, glint } = {}) {
+export function makeBay(cx, cz, r, { y = 0.25, tint, glint, reflect, skyMix } = {}) {
   const g = new THREE.CircleGeometry(r, 96); g.rotateX(-Math.PI / 2); g.translate(cx, y, cz);
   return makeWaterMesh(g, { tint, glint });
 }
@@ -114,9 +119,9 @@ export const presets = {
   /** Act I hero: low red void; fog thin enough to read the crown at ~300 m, thick enough to melt the horizon. */
   hero: (env) => {
     Object.assign(env, defaultEnv());
-    env.sun = { az: -38, el: 31, intensity: 1.5, dir: null };
-    env.ambient = { up: 0.70, down: 0.44, bounce: 0 };
-    env.fog = { density: 0.0011, height: 240, floorY: 0, air: 0.00004 };
+    env.sun = { az: -38, el: 33, intensity: 1.62, dir: null };
+    env.ambient = { up: 0.72, down: 0.46, bounce: 0 };
+    env.fog = { density: 0.0012, height: 300, floorY: 0, air: 0.00004 };
     env.shadow = { on: true, center: [0, 0, 0], radius: 1700, size: 2048, bias: 0.0005, normalBias: 1.6 };
     env.ground = { albedo: [0.46, 0, 0] };
     return env;

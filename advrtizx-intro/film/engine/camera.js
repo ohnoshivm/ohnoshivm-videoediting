@@ -92,3 +92,14 @@ export function dollyZoom(p, { h, fov0 = 38, fov1 = 1, tangent = true }) {
 
 /** Frame a vertical extent: distance for a camera with vertical fov (deg) to see `height` metres at the subject. */
 export const distForHeight = (height, fov = 40) => (height * 0.5) / Math.tan(fov * 0.5 * DEG);
+
+/** Look-at point that makes `target` land at NDC (ndcX, ndcY) on screen when seen from `pos` (vertical fov in degrees).
+    +ndcY = the target appears ABOVE the frame centre (so the camera looks below it). Returns a point for cam.look. No roll is introduced.
+    Use it to frame a moving subject exactly: cam.look = aimAt(pos, crownCentre, {ndcY: 0.45, fov}). */
+export function aimAt(pos, target, { ndcX = 0, ndcY = 0, fov = 40, aspect = 16 / 9 } = {}) {
+  const d = new THREE.Vector3(target[0] - pos[0], target[1] - pos[1], target[2] - pos[2]); const dist = d.length() || 1; d.normalize();
+  const up = new THREE.Vector3(0, 1, 0), right = new THREE.Vector3().crossVectors(d, up); if (right.lengthSq() < 1e-9) right.set(1, 0, 0); right.normalize();
+  const th = Math.tan(fov * 0.5 * DEG), ay = Math.atan(ndcY * th), ax = Math.atan(ndcX * th * aspect);
+  d.applyAxisAngle(right, -ay); d.applyAxisAngle(up, ax);
+  return [pos[0] + d.x * dist, pos[1] + d.y * dist, pos[2] + d.z * dist];
+}

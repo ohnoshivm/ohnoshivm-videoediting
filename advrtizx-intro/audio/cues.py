@@ -165,7 +165,8 @@ for _k in range(len(ERUPT_FRAMES) - 5):
 for _i, _f in enumerate(ERUPT_FRAMES, 1):
     _c(f"ERUPT_{_i:02d}", _f, "landing", "tower erupts / lands (pan = on-screen position)",
        index=_i - 1, pan=ERUPT_PAN[_i - 1], heavy=_i <= 5)
-_c("CITY_DUBAI", 288, "city", "city hit: impact + tonal stab (D5 crown of the rising city line)", note_idx=0)
+CITY_TOPS = ["A4", "Bb4", "C#5", "D5", "E5", "F5", "G5", "A5", "Bb5", "C#6"]    # D harmonic minor from A4: the rising city line
+_c("CITY_DUBAI", 288, "city", f"city hit: impact + tonal stab, top note {CITY_TOPS[0]} (the city line starts)", note_idx=0)
 
 # ================================================================================================================
 # ACT IV - EVERY CITY (f384-639): each city = a WHIP leading into a CITY_HIT on the downbeat
@@ -174,10 +175,12 @@ CITY_LIST = [  # name, hit frame, whip start frame
     ("LONDON", 384, 376), ("NEWYORK", 448, 440), ("SINGAPORE", 512, 504), ("MUMBAI", 544, 536),
     ("MIAMI", 576, 572), ("SYDNEY", 592, 588), ("RIYADH", 608, 604), ("HONGKONG", 624, 620), ("TOKYO", 632, 628),
 ]
+CITY_LABEL = {"LONDON": "London", "NEWYORK": "New York", "SINGAPORE": "Singapore", "MUMBAI": "Mumbai", "MIAMI": "Miami",
+              "SYDNEY": "Sydney", "RIYADH": "Riyadh", "HONGKONG": "Hong Kong", "TOKYO": "Tokyo"}
 for _i, (_n, _hit, _w0) in enumerate(CITY_LIST, 1):
-    _c(f"WHIP_{_n}", _w0, "whoosh", f"whip-pan right into {_n.title()}", end=_hit, city=_n, order=_i)
-    _c(f"CITY_{_n}", _hit, "city", f"city hit: {_n.title()}", note_idx=_i, order=_i)
-_c("RISER_CITIES", 608, "riser", "riser under the last cities, into the grid", end=640)
+    _c(f"WHIP_{_n}", _w0, "whoosh", f"whip-pan right into {CITY_LABEL[_n]}", end=_hit, city=_n, order=_i)
+    _c(f"CITY_{_n}", _hit, "city", f"city hit: {CITY_LABEL[_n]}, top note {CITY_TOPS[_i]}", note_idx=_i, order=_i)
+_c("RISER_CITIES", 608, "riser", "riser under the last cities, into the grid (f608-639)", end=640)
 
 # ================================================================================================================
 # ACT V - AT ONCE (f640-895): the screen splits into ever more panels of simultaneous cities
@@ -189,6 +192,8 @@ for _i, (_f, _np, _t) in enumerate(GRID_LIST, 1):
 _c("UNISON", 832, "unison", "ONE INTELLIGENCE. - every tower in 64 cities lands on ONE transient (+ unresolved A5 bell)",
    size=1.30)
 _c("TEASE_2", 832, "bell", "motif tease #2: A5 alone, unresolved")
+_c("UNISON_GAP", 832 - 1, "gate", "one-frame vacuum before the unison: groove, pads and tails duck out so ONE transient lands in a clean room",
+   end=832)
 _c("DROPOUT", 832, "gate", "1-beat dropout: groove muted, tails and pedal drone survive", end=832 + BEAT)
 _c("ROLL", 864, "riser", "riser into the drop, drum roll from 16ths to 32nds", end=896)
 
@@ -210,7 +215,8 @@ _c("TENSION", 1088, "riser", "rising tension: Shepard creeps in, harmony leans o
 # ACT VII - CLIMAX (f1152-1407)
 # ================================================================================================================
 _c("CLIMAX", 1152, "impact", "long build: Shepard riser, drums intensify, A7b9 over the pedal", size=0.95)
-_c("SHEPARD", 1152, "riser", "endless Shepard riser", end=1376)
+_c("SHEPARD", 1152, "riser", "endless Shepard riser (octave-stacked sines under a fixed Gaussian window, accelerating)", end=1376)
+_c("RISER_CLIMAX", 1152 + 2 * BAR, "riser", "noise riser for the last 3 bars of the build, accelerating tremolo", end=1376)
 _c("SURGE", 1344, "riser", "peak density: 32nd-note drums, everything open", end=1376)
 _c("HARD_SILENCE", 1376, "gate", "cut to silence within 5 ms; no reverb tail past f1377", end=1408)
 

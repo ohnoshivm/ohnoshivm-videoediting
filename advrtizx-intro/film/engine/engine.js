@@ -82,10 +82,15 @@ export class Engine {
 
     const samples = Math.min(this.opts.msaa, this.glInfo.maxSamples);
     const common = { depthBuffer: false, stencilBuffer: false, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, generateMipmaps: false, colorSpace: THREE.NoColorSpace };
-    this.rtScene = new THREE.WebGLRenderTarget(W, H, { ...common, type: THREE.HalfFloatType, format: THREE.RGBAFormat, depthBuffer: true, samples });
+    this.rtScene = new THREE.WebGLRenderTarget(W, H, { ...common, type: THREE.HalfFloatType, format: THREE.RGBAFormat, depthBuffer: true, stencilBuffer: true, samples });   // stencil: planar reflections
+    this.rtRefl = new THREE.WebGLRenderTarget(W, H, { ...common, type: THREE.HalfFloatType, format: THREE.RGBAFormat, depthBuffer: true, samples });   // planar reflection (see towers.js mirror twins)
+    U.uReflTex.value = this.rtRefl.texture; U.uRes.value.set(W, H);
     this.rtAccum = new THREE.WebGLRenderTarget(W, H, { ...common, type: THREE.FloatType, format: THREE.RGBAFormat });
     this.rtOut = new THREE.WebGLRenderTarget(W, H, { ...common, type: THREE.UnsignedByteType, format: THREE.RGBAFormat });
     this.shadowRTs = new Map();
+    // a valid (tiny) depth texture is ALWAYS bound to uShadowMap, otherwise draws are rejected when shadows are off
+    this.dummyShadow = this.shadowRT(4); r.setRenderTarget(this.dummyShadow); r.clearDepth(); r.setRenderTarget(null);
+    U.uShadowMap.value = this.dummyShadow.depthTexture;
 
     // full-screen passes
     const tri = new THREE.BufferGeometry(); tri.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
@@ -149,7 +154,7 @@ export class Engine {
   }
   renderShadow(env) {
     const sh = env.shadow;
-    if (!sh.on) { U.uShadowParams.value.w = 0; return; }
+    if (!sh.on) { U.uShadowParams.value.w = 0; U.uShadowMap.value = this.dummyShadow.depthTexture; return; }
     const rt = this.shadowRT(sh.size), R = sh.radius, d = sunVector(env.sun), c = sh.center;
     const cam = this.shadowCam, eye = new THREE.Vector3(c[0] + d.x * R * 1.05, c[1] + d.y * R * 1.05, c[2] + d.z * R * 1.05);
     const m = new THREE.Matrix4().lookAt(eye, new THREE.Vector3(...c), Math.abs(d.y) > 0.98 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0)); m.setPosition(eye);
@@ -164,6 +169,19 @@ export class Engine {
     U.uShadowMat.value.copy(cam.projectionMatrix).multiply(cam.matrixWorldInverse);
     U.uShadowMap.value = rt.depthTexture;
     U.uShadowParams.value.set(sh.bias, sh.normalBias, 1 / sh.size, 1);
+  }
+
+  /* ──────────────────────────── reflection ──────────────────────────── */
+
+  hasReflectors() { let any = false; this.root.traverseVisible((o) => { if (!any && o.isMesh && o.layers.isEnabled(2)) any = true; }); return any; }
+  /** Renders the mirror twins (layer 2) with the current camera into rtReflect over the given viewport rect (px, GL origin). */
+  renderReflection(vp, clear) {
+    const r = this.renderer;
+    r.setRenderTarget(this.rtRefl); r.setClearColor(0x000000, 0);
+    if (vp) { r.setViewport(...vp); r.setScissorTest(true); r.setScissor(...vp); } else { r.setViewport(0, 0, this.W, this.H); r.setScissorTest(false); }
+    if (clear) r.clear(true, true, false); else r.clearDepth();
+    this.cam3.layers.set(2); r.render(this.root, this.cam3); this.cam3.layers.set(0);
+    r.setScissorTest(false);
   }
 
   /* ──────────────────────────── frame ──────────────────────────── */
@@ -214,10 +232,12 @@ export class Engine {
     if (!views) this.renderShadow(env);
     // scene pass
     r.setRenderTarget(this.rtScene); r.setClearColor(this.clearCol, 1);
-    r.setScissorTest(false); r.setViewport(0, 0, W, H); r.clear(true, true, false);
+    r.setScissorTest(false); r.setViewport(0, 0, W, H); r.clear(true, true, true);
     const aspect = W / H;
+    const reflOn = this.hasReflectors(); U.uReflOn.value = reflOn ? 1 : 0;
     if (!views) {
       this.cam.apply(this.cam3, aspect, (jx * 2) / W, (jy * 2) / H);
+      if (reflOn) { this.renderReflection(null, true); r.setRenderTarget(this.rtScene); }
       r.render(this.root, this.cam3);
     } else {
       const saved = new Map(); for (const g of this.gated) saved.set(g, g.visible);
@@ -229,8 +249,9 @@ export class Engine {
         this.renderShadow(venv);
         r.setRenderTarget(this.rtScene);
         r.setViewport(px, bottom, pw, ph); r.setScissorTest(true); r.setScissor(px, bottom, pw, ph);
-        if (v.bg) { r.setClearColor(new THREE.Color(...v.bg), 1); r.clear(true, true, false); r.setClearColor(this.clearCol, 1); } else r.clearDepth();
+        if (v.bg) { r.setClearColor(new THREE.Color(...v.bg), 1); r.clear(true, true, true); r.setClearColor(this.clearCol, 1); } else { r.clearDepth(); r.clearStencil(); }
         (v.cam || this.cam).apply(this.cam3, pw / ph, (jx * 2) / pw, (jy * 2) / ph);
+        if (reflOn) { this.renderReflection([px, bottom, pw, ph], v === views[0]); r.setRenderTarget(this.rtScene); r.setViewport(px, bottom, pw, ph); r.setScissorTest(true); r.setScissor(px, bottom, pw, ph); }
         r.render(this.root, this.cam3);
       }
       for (const [g, vis] of saved) g.visible = vis;

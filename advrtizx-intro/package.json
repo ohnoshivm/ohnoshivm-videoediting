@@ -12,7 +12,8 @@
     "final": "node tools/render.mjs --final",
     "contact": "node tools/contact.mjs",
     "bench": "node tools/bench.mjs",
-    "lint": "node tools/lint.mjs"
+    "lint": "node tools/lint.mjs",
+    "qa": "node tools/qa.mjs"
   },
   "dependencies": {
     "three": "0.186.1"

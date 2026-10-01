@@ -17,10 +17,29 @@ Layout
 from __future__ import annotations
 
 import os
+import sys
+import tempfile
+
+# keep the repo clean: no .pyc / numba cache files next to the sources (numba's cache goes to the temp dir)
+sys.dont_write_bytecode = True
+os.environ.setdefault("NUMBA_CACHE_DIR", os.path.join(tempfile.gettempdir(), "advrtizx_dominant_numba"))
 
 import numpy as np
 from scipy import fft as sfft
 from scipy import ndimage, signal
+
+# --------------------------------------------------------------------------------------
+# glibc tuning: the pipeline churns through ~50 MB stereo buffers; without this every temporary is mmap'd and
+# page-faulted afresh (sys time dominates). Keep freed memory in the heap instead. Harmless elsewhere.
+# --------------------------------------------------------------------------------------
+try:  # pragma: no cover - platform specific
+    import ctypes
+
+    _libc = ctypes.CDLL("libc.so.6")
+    _libc.mallopt(-1, 1 << 30)       # M_TRIM_THRESHOLD: never give memory back to the OS
+    _libc.mallopt(-4, 0)             # M_MMAP_MAX: serve big blocks from the heap, not mmap
+except Exception:
+    pass
 
 # --------------------------------------------------------------------------------------
 # numba (optional). ADVRTIZX_NO_NUMBA=1 forces the pure-python fallback (identical results, slower).
@@ -204,6 +223,50 @@ def biquad_peq(x, fc, q, gain_db):
     b = np.array([1 + al * A, -2 * c, 1 - al * A])
     a = np.array([1 + al / A, -2 * c, 1 - al / A])
     return signal.lfilter(b / a[0], a / a[0], x, axis=0)
+
+
+def peq_sos(fc, q, gain_db):
+    """RBJ peaking EQ as one second-order section (for cascading with sosfilt)."""
+    A = 10 ** (gain_db / 40.0)
+    w0 = TWO_PI * fc / SR
+    al = np.sin(w0) / (2 * q)
+    c = np.cos(w0)
+    b = np.array([1 + al * A, -2 * c, 1 - al * A])
+    a = np.array([1 + al / A, -2 * c, 1 - al / A])
+    return np.array([[*(b / a[0]), 1.0, a[1] / a[0], a[2] / a[0]]])
+
+
+def shelf_sos(fc, gain_db, kind="high", s=0.9):
+    """RBJ shelving EQ as one second-order section."""
+    A = 10 ** (gain_db / 40.0)
+    w0 = TWO_PI * fc / SR
+    c, sn = np.cos(w0), np.sin(w0)
+    al = sn / 2 * np.sqrt((A + 1 / A) * (1 / s - 1) + 2)
+    sq = 2 * np.sqrt(A) * al
+    if kind == "high":
+        b = [A * ((A + 1) + (A - 1) * c + sq), -2 * A * ((A - 1) + (A + 1) * c), A * ((A + 1) + (A - 1) * c - sq)]
+        a = [(A + 1) - (A - 1) * c + sq, 2 * ((A - 1) - (A + 1) * c), (A + 1) - (A - 1) * c - sq]
+    else:
+        b = [A * ((A + 1) - (A - 1) * c + sq), 2 * A * ((A - 1) - (A + 1) * c), A * ((A + 1) - (A - 1) * c - sq)]
+        a = [(A + 1) + (A - 1) * c + sq, -2 * ((A - 1) + (A + 1) * c), (A + 1) + (A - 1) * c - sq]
+    b = np.array(b, float)
+    a = np.array(a, float)
+    return np.array([[*(b / a[0]), 1.0, a[1] / a[0], a[2] / a[0]]])
+
+
+def par_map(fn, items, workers=4):
+    """map over items with threads (scipy's filters release the GIL)."""
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(workers) as ex:
+        return list(ex.map(fn, items))
+
+
+def sosfilt_st(sos, x):
+    """sosfilt of an (n,2) array with the two channels filtered in parallel threads (bit-identical to axis=0)."""
+    ch = par_map(lambda c: signal.sosfilt(sos, np.ascontiguousarray(x[:, c])), (0, 1), 2)
+    out = np.empty_like(x, dtype=float)
+    out[:, 0], out[:, 1] = ch
+    return out
 
 
 def biquad_shelf(x, fc, gain_db, kind="high", s=0.9):
@@ -393,42 +456,47 @@ def fm_tone(fc, ratio, index, n, os=2, amp=None, fb=0.0):
 # --------------------------------------------------------------------------------------
 # oversampling (4x polyphase with a Kaiser FIR, ~100 dB image rejection) - used by every nonlinearity
 # --------------------------------------------------------------------------------------
-def _os_fir(os):
-    """unity-DC-gain Kaiser FIR (beta 9.5, ~98 dB) for the os-times rate; resample_poly applies the x`up` gain."""
-    taps = 64 * os + 1
-    return signal.firwin(taps, 0.90 / os, window=("kaiser", 9.5))
+def _os_fir(os, taps_per_os=64, beta=9.5, cut=0.90):
+    """unity-DC-gain Kaiser FIR for the os-times rate; resample_poly applies the x`up` gain."""
+    return signal.firwin(taps_per_os * os + 1, cut / os, window=("kaiser", beta))
 
 
+# 'full'  257 taps @4x, ~98 dB: broadband signals (saw stacks, noise, Shepard)
+# 'mid'   129 taps @4x, ~85 dB: general purpose
+# 'lf'     65 taps @4x, ~70 dB: signals that live far below Nyquist (sub sines, kicks, thumps, bass), where a
+#          wide transition band is perfectly safe
 _OS_H = {os: _os_fir(os) for os in (2, 4, 8)}
+_OS_HQ = {"full": _OS_H, "mid": {os: _os_fir(os, 32, 8.0) for os in (2, 4, 8)},
+          "lf": {os: _os_fir(os, 16, 7.0, 0.80) for os in (2, 4, 8)}}
 
 
-def up(x, os=4):
-    return signal.resample_poly(x, os, 1, window=_OS_H[os], axis=0)
+def up(x, os=4, q="full"):
+    return signal.resample_poly(x, os, 1, window=_OS_HQ[q][os], axis=0)
 
 
-def down(x, os=4):
-    return signal.resample_poly(x, 1, os, window=_OS_H[os], axis=0)
+def down(x, os=4, q="full"):
+    return signal.resample_poly(x, 1, os, window=_OS_HQ[q][os], axis=0)
 
 
-def oversampled(x, fn, os=4):
+def oversampled(x, fn, os=4, q="full"):
     """y = D(fn(U(x))): run a memoryless nonlinearity at os-times the sample rate."""
-    return down(fn(up(x, os)), os)
+    return down(fn(up(x, os, q)), os, q)
 
 
-def tanh_os(x, drive=1.0, os=4):
+def tanh_os(x, drive=1.0, os=4, q="mid"):
     """normalised oversampled tanh: tanh(d x) / tanh(d) * (peak-preserving at |x| = 1)."""
     d = float(drive)
-    return oversampled(x, lambda u: np.tanh(d * u) / np.tanh(d), os)
+    return oversampled(x, lambda u: np.tanh(d * u) / np.tanh(d), os, q)
 
 
-def asym_sat_os(x, drive=1.0, bias=0.15, os=4):
+def asym_sat_os(x, drive=1.0, bias=0.15, os=4, q="lf"):
     """asymmetric (even + odd harmonic) saturation, DC-blocked; for sub weight."""
     d = float(drive)
 
     def fn(u):
         y = np.tanh(d * (u + bias)) - np.tanh(d * bias)
         return y / np.tanh(d)
-    y = oversampled(x, fn, os)
+    y = oversampled(x, fn, os, q)
     return signal.sosfilt(_sos("highpass", 12.0, 2), y, axis=0)
 
 
@@ -463,11 +531,14 @@ def width(st, w):
 
 
 def bass_mono(st, fc=120.0):
-    """Everything below ~fc to mono (zero-phase 4th-order split; the high band keeps its width)."""
-    sos = _sos("lowpass", fc, 4)
-    low = signal.sosfiltfilt(sos, st, axis=0)
-    mono = low.mean(axis=1, keepdims=True)
-    return st - low + mono
+    """Everything below ~fc to mono (zero-phase 4th-order split; the high band keeps its width). Implemented as
+    'remove the low band of the side signal' (identical result, half the filtering)."""
+    side = 0.5 * (st[:, 0] - st[:, 1])
+    low_side = signal.sosfiltfilt(_sos("lowpass", fc, 4), side)
+    out = st.copy()
+    out[:, 0] -= low_side
+    out[:, 1] += low_side
+    return out
 
 
 def decorrelate(x, rng, amount=1.0, lo=250.0):
@@ -559,7 +630,7 @@ def reverse_swell(src_mono, ir, length_s, tail_fade_ms=3.0):
 def compressor_gain(x, thr_db=-18.0, ratio=2.0, attack_ms=10.0, release_ms=120.0, knee_db=6.0, ctrl=16):
     """Feed-forward linked peak compressor; returns the per-sample linear gain curve."""
     n = x.shape[0]
-    a = np.abs(x).max(axis=1)
+    a = np.abs(x) if x.ndim == 1 else np.abs(x).max(axis=1)
     nb = (n + ctrl - 1) // ctrl
     pad = nb * ctrl - n
     if pad:
@@ -590,19 +661,26 @@ def _smooth_env(env_in, att, rel):
     return out
 
 
-def softclip_gain(x, knee=0.7, os=4):
-    """Linked, 4x-oversampled soft clipper expressed as a gain curve on max(|L|,|R|):
-    below `knee` the gain is 1 (transparent), above it a tanh shoulder rounds the peak to <= 1.0.
-    The conservative (min) gain over the 4 oversampled points is kept per sample."""
+def os_peak(x, os=4):
+    """per-sample true-peak estimate: max over both channels and the `os` interpolated points of each sample
+    period (float32 polyphase interpolation, 81-tap Kaiser). Returns (n,) float64."""
     n = x.shape[0]
-    u = signal.resample_poly(x, os, 1, window=_OS_H[os], axis=0)
-    m = np.abs(u).max(axis=1)
+    x32 = np.ascontiguousarray(x, dtype=np.float32)
+    u = signal.resample_poly(x32, os, 1, axis=0)
+    m = np.abs(u[:, 0])
+    np.maximum(m, np.abs(u[:, 1]), out=m)
+    return m[: n * os].reshape(n, os).max(axis=1).astype(np.float64)
+
+
+def softclip_gain(x, knee=0.7, os=4, pk=None):
+    """Linked soft clipper on the 4x-oversampled (true) peak, expressed as a gain curve: below `knee` the gain is 1
+    (transparent), above it a tanh shoulder rounds the peak to <= 1.0. The gain is monotonic in the peak, so the
+    gain of the per-sample maximum over the oversampled points equals the minimum over their gains."""
+    m = os_peak(x, os) if pk is None else pk
     over = np.maximum(m - knee, 0.0)
     head = 1.0 - knee
     y = np.where(m <= knee, m, knee + head * np.tanh(over / head))
-    g = np.where(m > 1e-9, y / np.maximum(m, 1e-9), 1.0)
-    g = g[: n * os].reshape(n, os).min(axis=1)
-    return g
+    return np.where(m > 1e-9, y / np.maximum(m, 1e-9), 1.0)
 
 
 def _peak_release(d, lam, block=4096):
@@ -623,8 +701,7 @@ def _peak_release(d, lam, block=4096):
 
 
 def true_peak_linear(x, os=4):
-    up_ = signal.resample_poly(x, os, 1, axis=0)
-    return float(np.abs(up_).max())
+    return float(os_peak(x, os).max())
 
 
 def limiter_gain(x, ceiling_db=-1.25, lookahead_ms=2.0, release_ms=90.0, os=4):
@@ -633,8 +710,7 @@ def limiter_gain(x, ceiling_db=-1.25, lookahead_ms=2.0, release_ms=90.0, os=4):
     can never exceed the gain a peak demands, so the ceiling is guaranteed (checked by measurement)."""
     n = x.shape[0]
     ceil = float(dbl(ceiling_db))
-    up_ = signal.resample_poly(x, os, 1, axis=0)
-    pk = np.abs(up_).max(axis=1)[: n * os].reshape(n, os).max(axis=1)
+    pk = os_peak(x, os)
     need = np.minimum(1.0, ceil / np.maximum(pk, 1e-12))
     L = max(1, int(lookahead_ms * 1e-3 * SR))
     W = L + 1
