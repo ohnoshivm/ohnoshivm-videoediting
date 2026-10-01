@@ -396,7 +396,7 @@ export function cameraAt(t) {
   const z = lerp(560, D_END, Math.pow(p, 0.92));
   const y = lerp(2.6, FRAME.ly + 38, Math.pow(p, 1.75));
   let pos = [x, y, z];
-  const look = lerp3([330, 130, -700], [0, FRAME.ly, 0], Math.pow(p, 0.8));
+  const look = lerp3([420, 380, -700], [0, FRAME.ly, 0], Math.pow(p, 0.8));
   let fov = lerp(60, FOV_END, Math.pow(p, 0.8));
   let roll = -2.2 * Math.pow(1 - p, 2.2);
   const out = { pos, look, fov, roll, near: 2, far: 60000, ortho: 0, orthoHeight: H_DZ };

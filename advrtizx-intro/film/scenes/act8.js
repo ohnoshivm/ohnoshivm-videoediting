@@ -21,11 +21,11 @@ export default function act8(ctx) {
   const adAt = (t) => {
     const hero = { cx: 960, cy: 540, h: AD_PX_H };
     const u = fly(clamp((t - (F.SENT + 3)) / (F.CLICK - (F.SENT + 3))));
-    const c = [1500, 330];
-    const bez = (a, b, k) => (1 - k) * (1 - k) * a + 2 * (1 - k) * k * b[0] + k * k * 0;       // (unused helper kept simple below)
+    const c = [1560, 230];
     const x = (1 - u) * (1 - u) * hero.cx + 2 * (1 - u) * u * c[0] + u * u * P.ad.cx;
     const y = (1 - u) * (1 - u) * hero.cy + 2 * (1 - u) * u * c[1] + u * u * P.ad.cy;
-    const h = hero.h * Math.pow(P.ad.h / hero.h, u);
+    const us = EASE.outCubic(clamp((t - (F.SENT + 1)) / 24));
+    const h = hero.h * Math.pow(P.ad.h / hero.h, us);
     let dx = 0, dy = 0;
     if (t > F.CLICK) { const dt = t - F.CLICK; dx = -4.0 * Math.exp(-dt / 1.5) * Math.sin(dt * 1.15); }   // the click: a micro overshoot and settle
     return { cx: x + dx, cy: y + dy, h };

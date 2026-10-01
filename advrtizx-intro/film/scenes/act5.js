@@ -110,7 +110,7 @@ export default function act5(ctx) {
       for (let r = 1; r < st.rows; r++) { const y = (0.5 + (r / st.rows - 0.5) * Z) * 1080; g.fillRect(0, y - gw / 2, 1920, gw); }
       const cp = copyAt(t);
       if (cp) {
-        const d = t - cp.f, open = EASE.snap(clamp(d / 3)), size = cp.txt.length > 14 ? 150 : cp.txt.length > 10 ? 200 : 250, bh = size * 1.42 * open, cy = 540;
+        const d = t - cp.f, open = EASE.snap(clamp(d / 3)), size = cp.txt.length > 14 ? 150 : cp.txt.length > 10 ? 200 : 250, bh = size * 1.42 * open, cy = st.n === 2 ? 820 : st.n === 4 ? 470 : 540;
         g.fillStyle = '#E80101'; g.fillRect(0, cy - bh / 2, 1920, bh);
         g.fillStyle = '#fff'; g.fillRect(0, cy - bh / 2 - 3, 1920, 6); g.fillRect(0, cy + bh / 2 - 3, 1920, 6);
         g.save(); T.clipRect(g, 0, cy - bh / 2 + 3, 1920, bh - 6);

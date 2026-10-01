@@ -242,7 +242,7 @@ export function dubaiSpecs(rng, rail) {
       specs.push({ x, z, w: w * tr.wf, d: d * tr.wf, h: hh, y, crown: last ? crown : null, crownScale: cs, crownDepth: d * tr.wf * 1.1, riseH: h, t0: L - dur, dur, land: L, drop: last ? drop : 0, dropDur: 4, ease: 'slam', pitch: rng.range(3.8, 4.8) }); y += hh; });
   };
   const R = [[230, 9, 140, 300], [480, 14, 220, 420], [760, 18, 260, 480], [1060, 22, 240, 460], [1400, 26, 200, 420]];
-  R.forEach(([r, n, h0, h1], k) => { h0 *= 1.3; h1 *= 1.35; let placed = 0, tries = 0;
+  R.forEach(([r, n, h0, h1], k) => { h0 *= 1.15; h1 *= 1.2; let placed = 0, tries = 0;
     while (placed < n && tries++ < n * 30) { const a = rng.range(0, Math.PI * 2), x = r * Math.sin(a) * rng.range(0.92, 1.08), z = -r * Math.cos(a) * rng.range(0.92, 1.08) + 40;
       if (!free(x, z, 40)) continue; mk(x, z, rng.range(h0, h1), HEAVY[k], false); placed++; } });
   // lighter landings on 8ths, in front of the trucking camera, primary at the audio pan position

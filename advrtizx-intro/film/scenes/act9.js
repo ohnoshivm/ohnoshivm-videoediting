@@ -18,9 +18,8 @@ export default function act9(ctx) {
   const tagO = { size: 21, weight: 700, stretch: 100, track: 0.30 };
   const tagText = 'THE AI-FIRST AGENCY FOR THE WORLD’S REAL ESTATE';
   const tagBase = wmBase + 72 + 0.734 * 21;
-  const exitStart = [F.CARD + 6, F.CARD + 3, F.CARD + 0, F.CARD + 12, F.CARD + 9];      // EVERY SKYLINE STARTS WITH AN: line 2 right to left, then line 1
-  // word index order: 0 EVERY, 1 SKYLINE, 2 STARTS, 3 WITH, 4 AN  -> AN first, WITH, STARTS, then SKYLINE, EVERY
-  const exitAt = [F.CARD + 14, F.CARD + 11, F.CARD + 6, F.CARD + 3, F.CARD + 0];
+    // word index order: 0 EVERY, 1 SKYLINE, 2 STARTS, 3 WITH, 4 AN  -> AN first, WITH, STARTS, then SKYLINE, EVERY
+  const exitAt = [F.CARD + 15, F.CARD + 12, F.CARD + 7, F.CARD + 4, F.CARD + 1];
   const EXIT = 15;
   const settle = (dt) => (dt > 0 ? -3.0 * Math.exp(-dt / 1.6) * Math.sin(dt * 1.1) : 0);
 
@@ -38,8 +37,8 @@ export default function act9(ctx) {
       // the sentence leaves: every word rises out through the top of its line mask
       drawWords(ctx, g, P, (w) => { const u = (t - exitAt[w.i]) / EXIT; return u >= 1 ? null : { dy: -P.cap * 1.5 * (u > 0 ? Math.pow(u, 2.2) : 0), alpha: 1 }; });
       // the AD returns to hero size
-      const u = glide(clamp((t - F.CARD - 2) / (F.CARD + 31 - (F.CARD + 2))));
-      const cx = lerp(P.ad.cx, cardAD.cx, u), cy = lerp(P.ad.cy, cardAD.cy, u), h = P.ad.h * Math.pow(cardAD.h / P.ad.h, u);
+      const u = glide(clamp((t - F.CARD) / 30));
+      const cx = lerp(P.ad.cx, cardAD.cx, u), cy = lerp(P.ad.cy, cardAD.cy, u) - 160 * Math.sin(Math.PI * u) * (1 - u * 0.0), h = P.ad.h * Math.pow(cardAD.h / P.ad.h, u);
       logo.draw(g, { x: cx, y: cy, height: h, anchor: 'center', fill: '#fff' });
       // the wordmark rises out of a mask beneath the AD
       const wu = (t - (F.CARD + 17)) / 16;
