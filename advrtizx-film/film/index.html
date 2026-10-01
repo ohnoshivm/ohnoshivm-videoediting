@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TRUE ANGLE</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #FFFFFF; }
+  body.preview { background: #FCE0E0; }
+  #stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden;
+           background: #FFFFFF; transform-origin: 0 0; contain: strict; }
+  .shot { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden;
+          transform-origin: 0 0; display: none; }
+  .shot > svg, .shot > canvas, #guides { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+  svg { overflow: hidden; }
+  svg text { font-kerning: normal; font-variant-ligatures: none; }
+  #guides { pointer-events: none; z-index: 1000; display: none; }
+  #ui { position: fixed; left: 0; right: 0; bottom: 0; height: 48px; display: none; align-items: center; gap: 16px;
+        padding: 0 16px; background: #E80101; color: #FFFFFF; font: 500 13px/1 'IBM Plex Mono', monospace;
+        letter-spacing: 0.08em; box-sizing: border-box; }
+  #ui button { font: inherit; color: #E80101; background: #FFFFFF; border: 0; padding: 6px 12px; cursor: pointer; }
+  #ui input[type=range] { flex: 1; accent-color: #FFFFFF; }
+  #ui #readout { min-width: 360px; white-space: pre; }
+</style>
+</head>
+<body>
+<div id="stage"><svg id="guides" viewBox="0 0 1920 1080"></svg></div>
+<div id="ui"><button id="play">PLAY</button><input id="scrub" type="range" min="0" max="1799" step="1" value="0"><span id="readout"></span></div>
+
+<script src="core.js"></script>
+<script src="shots/s01.js"></script>
+<script src="shots/s02.js"></script>
+<script src="shots/s03.js"></script>
+<script src="shots/s04.js"></script>
+<script src="shots/s05.js"></script>
+<script src="shots/s06.js"></script>
+<script src="shots/s07.js"></script>
+<script src="shots/s08.js"></script>
+<script src="shots/s09.js"></script>
+<script src="shots/s10.js"></script>
+<script src="shots/s11.js"></script>
+<script src="shots/s12.js"></script>
+<script src="shots/s13.js"></script>
+<script>TA.boot();</script>
+</body>
+</html>

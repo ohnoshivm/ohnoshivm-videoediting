@@ -1,0 +1,8 @@
+/* Self-hosted fonts for TRUE ANGLE (Latin subset, copied from npm @fontsource packages; OFL, see LICENSE-OFL.txt).
+   Families: MEASURE = IBM Plex Mono 400/500 · MEANING = Instrument Serif Italic 400 ·
+   AUTHORITY = Archivo variable (wght 100–900, wdth 62–125; use font-stretch:112%) · CLICHE = Playfair Display 400. */
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:block;src:url(ibm-plex-mono-latin-400-normal.woff2) format('woff2');}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:block;src:url(ibm-plex-mono-latin-500-normal.woff2) format('woff2');}
+@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;font-display:block;src:url(instrument-serif-latin-400-italic.woff2) format('woff2');}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:100 900;font-stretch:62% 125%;font-display:block;src:url(archivo-latin-wdth-normal.woff2) format('woff2-variations'),url(archivo-latin-wdth-normal.woff2) format('woff2');}
+@font-face{font-family:'Playfair Display';font-style:normal;font-weight:400;font-display:block;src:url(playfair-display-latin-400-normal.woff2) format('woff2');}
