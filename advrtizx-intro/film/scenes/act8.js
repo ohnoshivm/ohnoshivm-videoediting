@@ -20,7 +20,7 @@ export default function act8(ctx) {
   /** The AD's centre / height at time t (px, 1920x1080 logical). */
   const adAt = (t) => {
     const hero = { cx: 960, cy: 540, h: AD_PX_H };
-    const u = fly(clamp((t - (F.SENT + 3)) / (F.CLICK - (F.SENT + 3))));
+    const u = fly(clamp((t - (F.SENT + 3)) / (F.CLICK - 0.5 - (F.SENT + 3))));
     const c = [1560, 230];
     const x = (1 - u) * (1 - u) * hero.cx + 2 * (1 - u) * u * c[0] + u * u * P.ad.cx;
     const y = (1 - u) * (1 - u) * hero.cy + 2 * (1 - u) * u * c[1] + u * u * P.ad.cy;

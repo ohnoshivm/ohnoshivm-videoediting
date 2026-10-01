@@ -64,14 +64,14 @@ export default function act5(ctx) {
   }
 
   const gutW = [9, 7, 6, 5, 4, 3];
-  const stageAt = (t) => { let s = stages[0]; for (const st of stages) if (t >= st.hit) s = st; return s; };
+  const stageAt = (t) => { let s = stages[0]; for (const st of stages) if (t >= st.hit - 0.26) s = st; return s; };
   const events = [];
   stages.forEach((st) => events.push({ f: st.hit + 6, amp: 1.0 + st.si * 0.12, decay: 3, freq: 0.6, seed: st.si * 5 }, { f: st.hit, amp: 0.8, decay: 2.2, freq: 0.7, seed: st.si * 5 + 1 }));
   events.push({ f: UNI, amp: 3.2, decay: 4.5, freq: 0.5, seed: 77 });
   for (let j = 0; j < 12; j++) events.push({ f: j < 4 ? TEN + 2 + j * 4 : TEN + 16 + (j - 4) * 2, amp: 0.7, decay: 1.8, freq: 0.8, seed: 90 + j });
 
   const zoomAt = (t) => 1 + 0.5 * EASE.inCubic(clamp((t - TEN) / (END + 1 - TEN)));
-  const copyAt = (t) => { let c = null; for (const [cue, txt] of COPY) { const f = ctx.cue(cue); if (t >= f) c = { f, txt }; } if (c) { const nxt = stages.find((s) => s.hit > c.f && s.hit <= t); if (nxt && !COPY.some(([q]) => ctx.cue(q) === nxt.hit)) return null; } return c; };
+  const copyAt = (t) => { let c = null; for (const [cue, txt] of COPY) { const f = ctx.cue(cue); if (t >= f - 0.26) c = { f, txt }; } if (c) { const nxt = stages.find((s) => s.hit > c.f && s.hit - 0.26 <= t); if (nxt && !COPY.some(([q]) => ctx.cue(q) === nxt.hit)) return null; } return c; };
   const rectOf = (st, c, r, Z) => { const x0 = c / st.cols, y0 = r / st.rows, w = 1 / st.cols, h = 1 / st.rows; return [0.5 + (x0 - 0.5) * Z, 0.5 + (y0 - 0.5) * Z, w * Z, h * Z]; };
 
   return {
@@ -85,7 +85,7 @@ export default function act5(ctx) {
       env.fog = { density: 0.00012, height: 450, floorY: 0, air: 0.00001 };
       env.ground = { albedo: [0.47, 0, 0] };
       env.shadow = { on: false, center: [0, 60, -200], radius: 700, size: 1024, bias: 0.0006, normalBias: 1.0 };
-      const st = stageAt(t), Z = zoomAt(t), dt = t - st.hit, sh = addShake(shake(t, events, { rollScale: 0.3 }), rumble(t, TEN, END + 1, 0.05, 1.6, { freq: 0.9, seed: 4 }));
+      const st = stageAt(t), Z = zoomAt(t), dt = Math.max(0, t - st.hit), sh = addShake(shake(t, events, { rollScale: 0.3 }), rumble(t, TEN, END + 1, 0.05, 1.6, { freq: 0.9, seed: 4 }));
       const tenE = EASE.inCubic(clamp((t - TEN) / (END + 1 - TEN)));
       const views = [];
       for (const p of st.panels) {
@@ -103,14 +103,14 @@ export default function act5(ctx) {
       ctx.views = views;
     },
     overlay(t, g) {
-      const st = stageAt(t), Z = zoomAt(t), dt = t - st.hit;
+      const st = stageAt(t), Z = zoomAt(t), dt = Math.max(0, t - st.hit);
       const gw = gutW[st.si] * Z * clamp(dt / 2 + 0.5, 0, 1);
       g.fillStyle = '#fff';
       for (let c = 1; c < st.cols; c++) { const x = (0.5 + (c / st.cols - 0.5) * Z) * 1920; g.fillRect(x - gw / 2, 0, gw, 1080); }
       for (let r = 1; r < st.rows; r++) { const y = (0.5 + (r / st.rows - 0.5) * Z) * 1080; g.fillRect(0, y - gw / 2, 1920, gw); }
       const cp = copyAt(t);
       if (cp) {
-        const d = t - cp.f, open = EASE.snap(clamp(d / 3)), size = cp.txt.length > 14 ? 150 : cp.txt.length > 10 ? 200 : 250, bh = size * 1.42 * open, cy = st.n === 2 ? 820 : st.n === 4 ? 470 : 540;
+        const d = Math.max(0, t - cp.f), open = EASE.snap(clamp(d / 3)), size = cp.txt.length > 14 ? 150 : cp.txt.length > 10 ? 200 : 250, bh = size * 1.42 * open, cy = st.n === 2 ? 820 : st.n === 4 ? 470 : 540;
         g.fillStyle = '#E80101'; g.fillRect(0, cy - bh / 2, 1920, bh);
         g.fillStyle = '#fff'; g.fillRect(0, cy - bh / 2 - 3, 1920, 6); g.fillRect(0, cy + bh / 2 - 3, 1920, 6);
         g.save(); T.clipRect(g, 0, cy - bh / 2 + 3, 1920, bh - 6);

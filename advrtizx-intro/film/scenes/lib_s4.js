@@ -420,7 +420,7 @@ export function cameraAt(t) {
 /** Camera-shake events (deterministic): the cut, the surge, and the two cadence hits. */
 export function shakeAt(t, util) {
   const { shake, rumble, addShake } = util;
-  const ev = [{ f: F.A7, amp: 0.7, decay: 4, freq: 0.6, seed: 1 }, { f: F.HITA, amp: 0.6, decay: 3.4, freq: 0.62, seed: 3 }, { f: F.HITD, amp: 1.15, decay: 6.0, freq: 0.5, seed: 9 }];
+  const ev = [{ f: F.A7, amp: 0.7, decay: 4, freq: 0.6, seed: 1 }, { f: F.HITA, amp: 0.35, decay: 3.0, freq: 0.62, seed: 3 }, { f: F.HITD, amp: 1.15, decay: 6.0, freq: 0.5, seed: 9 }];
   [1170, 1188, 1203, 1221].forEach((f, i) => ev.push({ f, amp: 0.22 + 0.05 * i, decay: 2.4, freq: 0.7, seed: 20 + i }));
   const surge = rumble(t, F.SURGE, F.OUT - 0.5, 0.20, 1.05, { freq: 1.1, seed: 5, ease: EASE.inQuad });
   const run = rumble(t, F.A7, F.SURGE, 0.015, 0.20, { freq: 0.8, seed: 2, ease: EASE.inQuad });

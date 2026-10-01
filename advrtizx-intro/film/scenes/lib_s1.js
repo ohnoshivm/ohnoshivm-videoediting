@@ -157,7 +157,7 @@ export function rail2(P0, o = {}) {
   const orbit = (t) => EASE.inOutSine(prog(t, 128, 224));
   const az = (t) => (t < 240 ? lerp(az0, K.azEnd, orbit(t)) : lerp(K.azEnd, -14, EASE.inQuad(prog(t, 240, 256))));
   const rr = track([[127, r0], [196, r0 + 6], [224, K.rIn, 'inQuart'], [240, K.rIn - 4], [248, 112, 'inOutSine'], [256, 165, 'outCubic']]);
-  const yy = track([[127, y0], [156, K.yOrbit, 'glide'], [224, K.yCrown, 'inOutSine'], [240, K.yCrown], [256, 7, (u) => u * u * (1.35 - 0.35 * u)]]);
+  const yy = track([[127, y0], [156, K.yOrbit, 'glide'], [224, K.yCrown, 'inOutSine'], [240, K.yCrown], [256, 7, 'inOutCubic']]);
   const nX = track([[127, ndc0[0]], [158, K.nxOrbit, 'cine'], [224, K.nxOrbit], [240, K.nxOrbit], [250, 0.0, 'inOutSine']]);
   const nY = track([[127, ndc0[1]], [158, K.nyOrbit], [224, 0.12, 'inOutSine'], [240, 0.12], [256, 0.0, 'inOutSine']]);
   const tYb = track([[127, HERO.centre], [240, HERO.centre]]);
@@ -206,8 +206,8 @@ export function rail3(P0, o = {}) {
   const r2 = rail2(P0, o), s0 = r2.at(256);
   const x0 = s0.pos[0], z0 = s0.pos[2];
   const zEnd = 1350, yEnd = 230;
-  const zf = (t) => lerp(z0, zEnd, EASE.outCubic(prog(t, 256, 334)));
-  const xf = (t) => lerp(x0, -90, EASE.outCubic(prog(t, 256, 300)));
+  const zf = (t) => lerp(z0, zEnd, EASE.glide(prog(t, 256, 334)));
+  const xf = (t) => lerp(x0, -90, EASE.glide(prog(t, 256, 300)));
   const yf = (t) => lerp(s0.pos[1], yEnd, EASE.inOutSine(prog(t, 256, 326)));
   const truck = (t) => 1250 * (EASE.inOutSine(prog(t, 318, 376)) * 0.55 + prog(t, 318, 376) * 0.45);
   const fov = track([[256, s0.fov], [290, 64, 'outCubic'], [330, 58, 'inOutSine'], [383, 58]]);
@@ -241,16 +241,14 @@ export function dubaiSpecs(rng, rail) {
     tiers.forEach((tr, i) => { const last = i === tiers.length - 1, hh = h * tr.f;
       specs.push({ x, z, w: w * tr.wf, d: d * tr.wf, h: hh, y, crown: last ? crown : null, crownScale: cs, crownDepth: d * tr.wf * 1.1, riseH: h, t0: L - dur, dur, land: L, drop: last ? drop : 0, dropDur: 4, ease: 'slam', pitch: rng.range(3.8, 4.8) }); y += hh; });
   };
-  const R = [[230, 9, 140, 300], [480, 14, 220, 420], [760, 18, 260, 480], [1060, 22, 240, 460], [1400, 26, 200, 420]];
-  R.forEach(([r, n, h0, h1], k) => { h0 *= 1.15; h1 *= 1.2; let placed = 0, tries = 0;
-    while (placed < n && tries++ < n * 30) { const a = rng.range(0, Math.PI * 2), x = r * Math.sin(a) * rng.range(0.92, 1.08), z = -r * Math.cos(a) * rng.range(0.92, 1.08) + 40;
-      if (!free(x, z, 40)) continue; mk(x, z, rng.range(h0, h1), HEAVY[k], false); placed++; } });
+  const R = [[230, 10, 120, 260, 0], [480, 20, 180, 340, 0], [760, 28, 200, 380, 0], [1060, 36, 200, 400, 0], [1400, 46, 180, 400, 4], [1800, 54, 160, 380, 4], [2300, 60, 150, 360, 4]];
+  R.forEach(([r, n, h0, h1, kk], k) => { let placed = 0, tries = 0;
+    while (placed < n && tries++ < n * 40) { const a = rng.range(0, Math.PI * 2), x = r * Math.sin(a) * rng.range(0.92, 1.08), z = -r * Math.cos(a) * rng.range(0.92, 1.08) + 40;
+      if (!free(x, z, 40)) continue; mk(x, z, rng.range(h0, h1), HEAVY[Math.min(k, 4)], false); placed++; } });
   // lighter landings on 8ths, in front of the trucking camera, primary at the audio pan position
   LIGHT.forEach((L, k) => { const pan = lightPan(k), cp = rail.at(L).pos;
     for (let j = 0; j < 4; j++) { let tries = 0; while (tries++ < 40) { const z = rng.range(-450, 280), depth = cp[2] - z, x = cp[0] + (j === 0 ? pan : pan + rng.range(-0.25, 0.25)) * depth * 0.80;
-      if (free(x, z, 40) && x > -1500) { mk(x, z, j === 0 ? rng.range(420, 560) : rng.range(220, 420), L, j === 0); break; } } } });
-  // the D sail on the waterfront (lands with the 3rd light wave)
-  specs.push({ x: 640, z: 330, w: 340, d: 50, h: 1, crown: 'Ds', crownScale: 1, riseH: 1, t0: 312 - 7, dur: 7, land: 312, drop: 120, dropDur: 4, ease: 'slam', pitch: 6 });
+      if (free(x, z, 40) && x > -1500) { mk(x, z, j === 0 ? rng.range(380, 500) : rng.range(200, 380), L, j === 0); break; } } } });
   return specs;
 }
 
@@ -258,6 +256,9 @@ export function buildDubai(ctx, rail) {
   const rng = ctx.rng('s1-dubai'), specs = dubaiSpecs(rng, rail);
   const set = new ctx.kits.towers.TowerSet({ lod: 0, shadow: true, name: 'dubai' });
   for (const s of specs) set.add(s);
+  // the D sail: the exact D profile stretched tall (arc to the sea), turned so its thickness and curve read, rising with the 3rd light wave
+  { const { profile, extrude } = ctx.kits.logo, D = profile('Ds'), pts = D.pts.map(([x, y]) => [x * 1.9, y * 3.6]);
+    set.addPrism(extrude(pts, { smoothDeg: 38 }), { x: 640, y: 0, z: 320, rot: -0.55, depth: 46, t0: 305, dur: 7, land: 312, riseH: 380, drop: 0, ease: 'slam', pitch: 6 }); }
   set.build();
   return { set, group: set.group, specs };
 }

@@ -13,10 +13,10 @@ export default async function act3(ctx) {
   const city = L.buildDubai(ctx, rail); ctx.root.add(city.group);
   const water = ctx.kits.world.makeWater({ x0: -12000, x1: 12000, z0: L.COAST_Z, z1: 12000 }); ctx.root.add(water);
 
-  const ar = L.typeLine({ text: 'دبي', em: 1150, lang: 'arabic', pxPerEm: 700, fog: 0.5, stretch: 100 });
-  const lat = L.typeLine({ text: 'DUBAI', em: 150, track: 0.42, stretch: 125, pxPerEm: 600, fog: 0.5 });
-  const TZ = -2300, AB = 1250;
-  ar.mesh.position.set(0, AB + ar.centreAboveBaseline, TZ); lat.mesh.position.set(0, 720 + lat.centreAboveBaseline, TZ);
+  const ar = L.typeLine({ text: 'دبي', em: 1050, lang: 'arabic', pxPerEm: 700, fog: 0.5, stretch: 100 });
+  const lat = L.typeLine({ text: 'DUBAI', em: 250, track: 0.4, stretch: 125, pxPerEm: 600, fog: 0.5 });
+  const TZ = -3400, AB = 1560;
+  ar.mesh.position.set(0, AB + ar.centreAboveBaseline, TZ); lat.mesh.position.set(0, 880 + lat.centreAboveBaseline, TZ);
   ctx.root.add(ar.mesh); ctx.root.add(lat.mesh);
 
   const IMP = [{ f: 256, amp: 3.6, decay: 4.2, seed: 1 }, { f: 264, amp: 2.8, decay: 3.4, seed: 2 }, { f: 272, amp: 2.4, decay: 3.2, seed: 3 }, { f: 280, amp: 2.0, decay: 3, seed: 4 }, { f: 288, amp: 2.6, decay: 3.6, seed: 5 },
@@ -24,8 +24,8 @@ export default async function act3(ctx) {
   return {
     id: 'act3', start: 256, end: 383,
     samples(f) {
-      if (f >= 376) return 32; if (f < 263) return 32; if (f < 292) return 20;
-      return L.LIGHT.some((l) => f >= l - 1 && f <= l + 2) ? 14 : 8;
+      if (f >= 376) return 32; if (f < 263) return 16; if (f < 292) return 14;
+      return L.LIGHT.some((l) => f >= l - 1 && f <= l + 2) ? 12 : 8;
     },
     update(t) {
       const env = ctx.env, cam = ctx.cam;
@@ -37,6 +37,7 @@ export default async function act3(ctx) {
       env.fog.density = lerp(0.012, 0.0004, EASE.outCubic(prog(t, 255.5, 275)));
       env.fog.height = lerp(250, 300, prog(t, 256, 280));
       env.fog.air = lerp(0.00004, 0.00011, prog(t, 256, 300));
+      { const k = EASE.inOutSine(prog(t, 256, 280)); env.ambient = { up: lerp(0.72, 0.5, k), down: lerp(0.46, 0.22, k), bounce: 0 }; env.sun = { az: lerp(-38, -52, k), el: lerp(33, 30, k), intensity: lerp(1.62, 1.95, k), dir: null }; }
       env.shadow = { on: true, center: [100, 0, -250], radius: 2300, size: 2048, bias: 0.0005, normalBias: 2.2 };
       const rings = [];
       L.HEAVY.forEach((f, k) => { const dt = t - f; if (dt >= -1 && dt < 16) rings.push({ x: 0, z: 40, r: [230, 480, 760, 1060, 1400][k] + dt * 45, w: 9, tail: 90, k: clamp(1 - dt / 16) }); });
