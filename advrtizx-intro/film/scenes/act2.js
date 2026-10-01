@@ -57,11 +57,11 @@ export default async function act2(ctx) {
       lines[2].tl.mesh.visible = t >= 159.5; lines[2].tl.setShift(1 - rise);
     },
     overlay(t, g) {
-      const T0 = 220.4, HIT = 224;
+      const T0 = 221.0, HIT = 224;
       if (t < T0 || t > 244) return false;
       const T = ctx.kits.type, sh = shake(t, IMPACTS, { rollScale: 0.3 });
       let s = 1;
-      if (t < HIT) s = lerp(1.7, 1, EASE.slam(clamp((t - T0) / (HIT - T0))));
+      if (t < HIT) s = lerp(1.22, 1, EASE.slam(clamp((t - T0) / (HIT - T0))));
       else s = 1 - 0.035 * Math.sin(clamp((t - HIT) / 4) * Math.PI) * Math.exp(-(t - HIT) / 3);
       const dy = t > 239.5 ? -1500 * EASE.inCubic(clamp((t - 239.5) / 4)) : 0;
       const ppd = 1080 / 52;

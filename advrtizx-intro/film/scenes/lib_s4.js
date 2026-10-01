@@ -122,6 +122,7 @@ out vec3 vWorld; out vec3 vN; flat out float vFace;
 ${GLSL_RISE}
 ${GLSL_MARK}
 float topFn(float a, float seg, float hpre, float s) { return mix(hpre, eTop(a, seg) + uTopPad, s); }
+float tiltFn(float u, float tl, float dir) { return tl * (dir > 0.0 ? u : 1.0 - u); }
 void main() {
   float seg = aA.w;
   // height of the pre-fusion (flat) top: base fraction + four slam jumps
@@ -141,14 +142,15 @@ void main() {
   float ov = 0.1 * s;
   float L = aA.x + aB.x * (1.0 - s) * gapK - ov, R = aA.y - aB.y * (1.0 - s) * gapK + ov;
   float xa = mix(L, R, position.x);
-  float hp = hpre + 0.9 * ant * aA.z * 0.0 + 1.1 * ant;                    // tops draw up a hair on the breath-in
-  float T = topFn(xa, seg, hp, s);
+  float hp = hpre + 1.1 * ant;                    // tops draw up a hair on the breath-in
+  float uu = position.x;
+  float T = topFn(xa, seg, hp - tiltFn(uu, aC.z, aC.w), s);
   float ya = position.y * T;
   float zw = aB.z * (1.0 - s) - position.z * aB.w;
   vec3 wp = vec3((xa - uAX) * uS, ya * uS, zw);
   vFace = abs(normal.x) > 0.5 ? 0.0 : (abs(normal.z) > 0.5 ? 1.0 : 2.0);
   vec3 n = normal;
-  if (abs(normal.y) > 0.5) { float dl = 0.04; float m = (topFn(xa + dl, seg, hp, s) - topFn(xa - dl, seg, hp, s)) / (2.0 * dl); n = normalize(vec3(-m, 1.0, 0.0)); }
+  if (abs(normal.y) > 0.5) { float dl = 0.04; float m = (topFn(xa + dl, seg, hp - tiltFn(uu + dl / max(R - L, 0.1), aC.z, aC.w), s) - topFn(xa - dl, seg, hp - tiltFn(uu - dl / max(R - L, 0.1), aC.z, aC.w), s)) / (2.0 * dl); n = normalize(vec3(-m, 1.0, 0.0)); }
   vN = mat3(modelMatrix) * n;
   vec4 W = modelMatrix * vec4(wp, 1.0);
   vWorld = W.xyz;
@@ -243,9 +245,9 @@ export function layoutStrips(seed = 'ad-wall') {
     for (let i = 0; i < bs.length - 1; i++) {
       const a0 = bs[i], a1 = bs[i + 1];
       let minTop = 1e9; for (let k = 0; k <= 12; k++) minTop = Math.min(minTop, eTop(a0 + (a1 - a0) * (k / 12), seg));
-      const big = rng() < 0.5, def = big ? rng.range(2.0, 6.0) : rng.range(0, 1.4);
+      const big = rng() < 0.6, def = big ? rng.range(2.0, seg ? 9.0 : 6.5) : rng.range(0, 1.4);
       out.push({ a0, a1, seg, minTop, flat: Math.max(6, minTop - def), gapL: i === 0 ? 0 : gaps[i - 1] / 2, gapR: i === bs.length - 2 ? 0 : gaps[i] / 2,
-        zOff: rng.range(-24, 16), depth: rng.range(95, 150), idx: out.length, rnd: rng() });
+        tilt: rng() < 0.55 ? rng.range(1.5, 4.5) : 0, tdir: rng() < 0.5 ? 1 : -1, zOff: rng.range(-24, 16), depth: rng.range(95, 150), idx: out.length, rnd: rng() });
     }
   };
   mk(A, 0); mk(D, 1);
@@ -270,7 +272,7 @@ export class AdWall {
     this.strips.forEach((s, i) => {
       const o = i * 4;
       aA.set([s.a0, s.a1, s.flat, s.seg], o); aB.set([s.gapL, s.gapR, s.zOff, s.depth], o);
-      aJ.set([s.t1, s.t2, s.t3, s.tF], o); aF.set([s.f0, s.d1, s.d2, s.d3], o); aC.set([s.delay, s.rnd, 0, 0], o);
+      aJ.set([s.t1, s.t2, s.t3, s.tF], o); aF.set([s.f0, s.d1, s.d2, s.d3], o); aC.set([s.delay, s.rnd, s.tilt, s.tdir], o);
     });
     const base = stripBase(lod);
     const g = new THREE.InstancedBufferGeometry(); g.index = base.index; for (const k of Object.keys(base.attributes)) g.setAttribute(k, base.attributes[k]);
@@ -292,7 +294,7 @@ const wallTopAtX = (x) => { const a = x / S + AX; if (a < 0 || a > MARK_W) retur
 /** Generic world towers (kit TowerSet): rows of white towers, taller toward the centre, many rows deep, never taller than the wall in front of them. */
 function genericSpecs(rng) {
   const out = [];
-  const keep = [(x, z) => (Math.abs(x) < 720 && z > -240 && z < 70), (x, z) => (x > -1000 && x < 1190 && z >= 70 && z < 2600), (x, z) => (Math.abs(x) < 760 && z >= 70)];
+  const keep = [(x, z) => (Math.abs(x) < 720 && z > -240 && z < 70), (x, z) => (x > -1000 && x < 770 && z >= 70 && z < 2600), (x, z) => (x >= 1000 && x < 1190 && z >= 70 && z < 2600), (x, z) => (Math.abs(x) < 760 && z >= 70)];
   const city = (x, z) => Math.hypot(x * 0.8, z + 120);
   const hfun = (x, z, r) => {
     const base = lerp(260, 80, clamp((city(x, z) - 500) / 4600));
@@ -301,13 +303,14 @@ function genericSpecs(rng) {
     return h;
   };
   const reg = (region, cell, p, wr, extra = {}) => out.push(...generate({ rng, region, cell, p, hfun, keepOut: keep, w: wr, aspect: [0.8, 1.15], jitter: 0.34, crowns: CROWN_MIX, ...extra }));
-  reg({ x0: -6500, x1: 6500, z0: -240, z1: 70 }, 80, 0.82, [24, 46]);                    // the front line, left and right of the AD
-  reg({ x0: -6500, x1: 6500, z0: -1500, z1: -240 }, 96, 0.80, [26, 52]);                 // rows behind
-  reg({ x0: -12000, x1: 12000, z0: -3600, z1: -1500 }, 175, 0.78, [44, 90]);             // far rows
-  reg({ x0: -16000, x1: 16000, z0: -8200, z1: -3600 }, 330, 0.78, [90, 190]);            // the horizon
-  reg({ x0: -6500, x1: 6500, z0: 70, z1: 1900 }, 104, 0.74, [26, 50]);                   // flanks toward the camera (the first frames are in here)
-  reg({ x0: -14000, x1: 14000, z0: 1900, z1: 3500 }, 260, 0.6, [60, 130]);               // beyond the camera
-  reg({ x0: 1190, x1: 2300, z0: -700, z1: 1500 }, 66, 0.94, [28, 54], { hfun: (x, z, r) => lerp(120, 340, Math.pow(r(), 0.8)) });   // the street canyon of the first frames
+  reg({ x0: -6500, x1: 6500, z0: -240, z1: 70 }, 110, 0.8, [28, 52]);                    // the front line, left and right of the AD
+  reg({ x0: -6500, x1: 6500, z0: -1500, z1: -240 }, 150, 0.72, [34, 64]);                 // rows behind
+  reg({ x0: -12000, x1: 12000, z0: -3600, z1: -1500 }, 320, 0.7, [70, 140]);             // far rows
+  reg({ x0: -16000, x1: 16000, z0: -8200, z1: -3600 }, 560, 0.7, [120, 260]);            // the horizon
+  reg({ x0: -6500, x1: 6500, z0: 70, z1: 1900 }, 170, 0.6, [34, 60]);                   // flanks toward the camera (the first frames are in here)
+  reg({ x0: -14000, x1: 14000, z0: 1900, z1: 3500 }, 520, 0.5, [90, 180]);               // beyond the camera
+  reg({ x0: 770, x1: 1000, z0: -700, z1: 1000 }, 62, 0.95, [30, 58], { hfun: (x, z, r) => lerp(110, 330, Math.pow(r(), 0.8)) });
+  reg({ x0: 1190, x1: 2300, z0: -700, z1: 1500 }, 70, 0.94, [28, 54], { hfun: (x, z, r) => lerp(120, 340, Math.pow(r(), 0.8)) });   // the street canyon of the first frames
   return out;
 }
 
@@ -392,11 +395,11 @@ export function dollyAt(t) {
 export function cameraAt(t) {
   const p = pullP(t);
   // street level at the edge of the plaza, looking down the avenue; pull back, crane up and slide across the plaza to the far frontal axis
-  const x = 1100 * (1 - Math.pow(p, 1.35));
+  const x = 1100 * (1 - Math.pow(smooth01(0.4, 1, p), 1.1));
   const z = lerp(560, D_END, Math.pow(p, 0.92));
   const y = lerp(2.6, FRAME.ly + 38, Math.pow(p, 1.75));
   let pos = [x, y, z];
-  const look = lerp3([420, 380, -700], [0, FRAME.ly, 0], Math.pow(p, 0.8));
+  const look = lerp3([1010, 300, -900], [0, FRAME.ly, 0], Math.pow(p, 0.9));
   let fov = lerp(60, FOV_END, Math.pow(p, 0.8));
   let roll = -2.2 * Math.pow(1 - p, 2.2);
   const out = { pos, look, fov, roll, near: 2, far: 60000, ortho: 0, orthoHeight: H_DZ };
@@ -420,7 +423,7 @@ export function cameraAt(t) {
 /** Camera-shake events (deterministic): the cut, the surge, and the two cadence hits. */
 export function shakeAt(t, util) {
   const { shake, rumble, addShake } = util;
-  const ev = [{ f: F.A7, amp: 0.7, decay: 4, freq: 0.6, seed: 1 }, { f: F.HITA, amp: 0.35, decay: 3.0, freq: 0.62, seed: 3 }, { f: F.HITD, amp: 1.15, decay: 6.0, freq: 0.5, seed: 9 }];
+  const ev = [{ f: F.A7, amp: 0.7, decay: 4, freq: 0.6, seed: 1 }, { f: F.HITA + 0.6, amp: 0.3, decay: 2.6, freq: 0.62, seed: 3 }, { f: F.HITD, amp: 1.15, decay: 6.0, freq: 0.5, seed: 9 }];
   [1170, 1188, 1203, 1221].forEach((f, i) => ev.push({ f, amp: 0.22 + 0.05 * i, decay: 2.4, freq: 0.7, seed: 20 + i }));
   const surge = rumble(t, F.SURGE, F.OUT - 0.5, 0.20, 1.05, { freq: 1.1, seed: 5, ease: EASE.inQuad });
   const run = rumble(t, F.A7, F.SURGE, 0.015, 0.20, { freq: 0.8, seed: 2, ease: EASE.inQuad });

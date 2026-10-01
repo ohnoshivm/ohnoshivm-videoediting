@@ -76,7 +76,7 @@ export default function act5(ctx) {
 
   return {
     id: 'act5', start: START, end: END,
-    samples(f) { let k = 3; for (const st of stages) if (f >= st.hit - 0.5 && f <= st.hit + 8) k = Math.max(k, 9); if (f >= UNI - 9 && f <= UNI + 6) k = 14; if (f >= TEN) k = Math.max(k, 8); return k; },
+    samples(f) { let k = 3; for (const st of stages) if (f >= st.hit - 0.5 && f <= st.hit + 8) k = Math.max(k, 9); if (f >= UNI - 9 && f <= UNI + 6) k = 10; if (f >= TEN) k = Math.max(k, 6); return k; },
     update(t) {
       const env = ctx.env;
       kits.world.preset(env, 'city');

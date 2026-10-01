@@ -34,12 +34,12 @@ export default function act8(ctx) {
   return {
     id: 'act8', start: F.HITA, end: F.CARD - 1,
     samples(t) {
-      if (t < F.HITA - 1) return 4;
-      if (t >= F.HITA - 1 && t < F.HITA + 8) return 12;
-      if (t >= F.HITD - 1 && t < F.HITD + 14) return 14;
-      if (t < F.ORTHO - 6) return 6;
-      if (t < T_SWAP) return 4;
-      if (t < F.CLICK + 7) return t > F.CLICK - 5 ? 14 : 10;
+      if (t < F.HITA - 1) return 1;
+      if (t >= F.HITA - 1 && t < F.HITA + 8) return 6;
+      if (t >= F.HITD - 1 && t < F.HITD + 14) return 6;
+      if (t < F.ORTHO - 6) return 4;
+      if (t < T_SWAP) return 2;
+      if (t < F.CLICK + 7) return 6;
       return 1;
     },
     update(t) {

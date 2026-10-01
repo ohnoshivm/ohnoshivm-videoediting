@@ -19,13 +19,13 @@ export default function act9(ctx) {
   const tagText = 'THE AI-FIRST AGENCY FOR THE WORLD’S REAL ESTATE';
   const tagBase = wmBase + 72 + 0.734 * 21;
     // word index order: 0 EVERY, 1 SKYLINE, 2 STARTS, 3 WITH, 4 AN  -> AN first, WITH, STARTS, then SKYLINE, EVERY
-  const exitAt = [F.CARD + 15, F.CARD + 12, F.CARD + 7, F.CARD + 4, F.CARD + 1];
-  const EXIT = 15;
+  const exitAt = [F.CARD + 2, F.CARD + 0, F.CARD + 8, F.CARD + 6, F.CARD + 4];
+  const EXIT = 11;
   const settle = (dt) => (dt > 0 ? -3.0 * Math.exp(-dt / 1.6) * Math.sin(dt * 1.1) : 0);
 
   return {
     id: 'act9', start: F.CARD, end: F.END,
-    samples(t) { return t < F.TAG + 10 ? 10 : 1; },
+    samples(t) { return (t > F.CARD + 14 && t < F.TAG + 10) || t < F.CARD + 20 ? 6 : 1; },
     update(t) {
       ctx.kits.world.preset(ctx.env, 'flat');
       ctx.cam.set({ pos: [0, 0, 100], look: [0, 0, 0], fov: 40, near: 1, far: 1000 }); ctx.cam.shake = null;
@@ -37,11 +37,11 @@ export default function act9(ctx) {
       // the sentence leaves: every word rises out through the top of its line mask
       drawWords(ctx, g, P, (w) => { const u = (t - exitAt[w.i]) / EXIT; return u >= 1 ? null : { dy: -P.cap * 1.5 * (u > 0 ? Math.pow(u, 2.2) : 0), alpha: 1 }; });
       // the AD returns to hero size
-      const u = glide(clamp((t - F.CARD) / 30));
-      const cx = lerp(P.ad.cx, cardAD.cx, u), cy = lerp(P.ad.cy, cardAD.cy, u) - 160 * Math.sin(Math.PI * u) * (1 - u * 0.0), h = P.ad.h * Math.pow(cardAD.h / P.ad.h, u);
+      const u = glide(clamp((t - F.CARD - 16) / 15));
+      const cx = lerp(P.ad.cx, cardAD.cx, u), cy = lerp(P.ad.cy, cardAD.cy, u) - 70 * Math.sin(Math.PI * u) * (1 - u * 0.0), h = P.ad.h * Math.pow(cardAD.h / P.ad.h, u);
       logo.draw(g, { x: cx, y: cy, height: h, anchor: 'center', fill: '#fff' });
       // the wordmark rises out of a mask beneath the AD
-      const wu = (t - (F.CARD + 17)) / 16;
+      const wu = (t - (F.CARD + 20)) / 14;
       if (wu > 0) {
         g.save(); g.beginPath(); g.rect(960 - wmW / 2 - 60, wmBase - 0.8 * 164 - 6, wmW + 120, 0.8 * 164 + 0.05 * 164 + 6); g.clip();
         T.draw(g, 'AdvrtizX', { ...wmO, x: 960, y: wmBase + 164 * 0.95 * (1 - rise(wu)), align: 'center', fill: '#fff' });
