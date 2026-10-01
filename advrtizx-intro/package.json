@@ -1,0 +1,30 @@
+{
+  "name": "advrtizx-intro",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DOMINANT: a 60-second WebGL motion film intro for AdvrtizX (30 fps, 1800 frames, 112.5 BPM).",
+  "scripts": {
+    "setup": "node tools/setup.mjs",
+    "probe": "node tools/probe.mjs",
+    "stills": "node tools/stills.mjs",
+    "draft": "node tools/render.mjs --draft",
+    "final": "node tools/render.mjs --final",
+    "contact": "node tools/contact.mjs",
+    "bench": "node tools/bench.mjs",
+    "lint": "node tools/lint.mjs"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@fontsource-variable/mona-sans": "^5.3.0",
+    "@fontsource/noto-kufi-arabic": "^5.3.0",
+    "@fontsource/noto-sans": "^5.3.0",
+    "@fontsource/noto-sans-devanagari": "^5.3.0",
+    "@fontsource/noto-sans-jp": "^5.3.0",
+    "@fontsource/noto-sans-kr": "^5.3.0",
+    "@fontsource/noto-sans-sc": "^5.3.0",
+    "@fontsource/noto-sans-thai": "^5.3.0"
+  }
+}

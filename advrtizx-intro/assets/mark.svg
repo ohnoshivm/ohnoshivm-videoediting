@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="7.5 0 219.7 100" width="878.8" height="400">
+  <!-- AdvrtizX mark, fitted to logo-red-on-white.png (IoU 0.996). Units: MU, mark height = 100.
+       Origin: sharp (pre-fillet) bottom-left vertex of the A sits at (0,100). Slope = exactly 3:4 (53.13 deg). -->
+  <path id="A" fill="#E80101" d="M80.4 0 L125.5 0 L125.5 100 L84.407 100 A21.2 21.2 0 0 0 52.393 100 L15 100 A7.5 7.5 0 0 1 9 88 L71.76 4.32 A10.8 10.8 0 0 1 80.4 0 Z"/>
+  <path id="D" fill="#E80101" d="M133.1 0 L177.2 0 A50 50 0 0 1 177.2 100 L133.1 100 Z"/>
+</svg>
