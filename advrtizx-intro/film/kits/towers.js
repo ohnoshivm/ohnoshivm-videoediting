@@ -34,7 +34,7 @@ function shaftBase() {
 /* ──────────────────────────────── shaders ──────────────────────────────── */
 
 const VERT_SHAFT = /* glsl */ `
-in vec4 aPos; in vec4 aDim; in vec4 aRise; in vec4 aDrop;
+in vec4 aPos; in vec4 aDim; in vec4 aRise; in vec4 aDrop; in vec4 aCrown;
 uniform float uTime;
 #ifdef JACK
 uniform float uTop;
@@ -53,20 +53,22 @@ void main() {
   if (uTime < aRise.x) { vWorld = vec3(0.0); vN = vec3(0.0, 1.0, 0.0); vLoc = vec3(0.0); gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
   float p = clamp((uTime - aRise.x) / max(aRise.y, 0.001), 0.0, 1.0);
   float e = easeKind(p, kind);
-  if (mode < 0.5) yoff = -h * (1.0 - e); else hh = h * max(e, 0.0005);
+  float rh = aCrown.w > 0.0 ? aCrown.w : h;
+  if (mode < 0.5) yoff = -rh * (1.0 - e); else hh = h * max(e, 0.0005);
 #endif
   float ca = cos(aPos.w), sa = sin(aPos.w);
   vec2 xz = vec2(position.x * aDim.x, position.z * aDim.y);
   float ly = position.y * hh;
   vec3 wp = vec3(aPos.x + ca * xz.x + sa * xz.y, aPos.y + yoff + ly, aPos.z - sa * xz.x + ca * xz.y);
-  vN = vec3(ca * normal.x + sa * normal.z, normal.y, -sa * normal.x + ca * normal.z);
+  vN = mat3(modelMatrix) * vec3(ca * normal.x + sa * normal.z, normal.y, -sa * normal.x + ca * normal.z);
 #ifdef JACK
   vLoc = vec3(xz.x, hh - ly, xz.y);      // y = distance BELOW the stack top: the facade rides with the crown
 #else
   vLoc = vec3(xz.x, ly, xz.y);           // y = height above the tower's own base
 #endif
-  vWorld = wp;
-  gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
+  vec4 W = modelMatrix * vec4(wp, 1.0);
+  vWorld = W.xyz;
+  gl_Position = projectionMatrix * viewMatrix * W;
 }`;
 
 const FRAG_SHAFT = /* glsl */ `
@@ -124,7 +126,8 @@ void main() {
   if (uTime < aRise.x || (dropping && uTime < aRise.z - cdur)) { vWorld = vec3(0.0); vN = vec3(0.0, 1.0, 0.0); gl_Position = vec4(2.0, 2.0, 2.0, 1.0); return; }
   float p = clamp((uTime - aRise.x) / max(aRise.y, 0.001), 0.0, 1.0);
   float e = easeKind(p, kind);
-  float top = (mode < 0.5) ? (h - h * (1.0 - e)) : (h * e);
+  float rh = aCrown.w > 0.0 ? aCrown.w : h;
+  float top = (mode < 0.5) ? (h - rh * (1.0 - e)) : (h * e);
   baseY = aPos.y + top + aCrown.z;
   if (dropping) { float pc = clamp((uTime - (aRise.z - cdur)) / cdur, 0.0, 1.0); drop = aDrop.x * (1.0 - pc * pc); }
 #endif
@@ -133,9 +136,10 @@ void main() {
   float ca = cos(aPos.w), sa = sin(aPos.w);
   vec3 wp = vec3(aPos.x + ca * lp.x + sa * lp.z, baseY + drop + lp.y, aPos.z - sa * lp.x + ca * lp.z);
   vec3 nl = normalize(vec3(normal.x / s, normal.y / s, normal.z / cz));
-  vN = vec3(ca * nl.x + sa * nl.z, nl.y, -sa * nl.x + ca * nl.z);
-  vWorld = wp;
-  gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
+  vN = mat3(modelMatrix) * vec3(ca * nl.x + sa * nl.z, nl.y, -sa * nl.x + ca * nl.z);
+  vec4 W = modelMatrix * vec4(wp, 1.0);
+  vWorld = W.xyz;
+  gl_Position = projectionMatrix * viewMatrix * W;
 }`;
 
 const FRAG_CROWN = /* glsl */ `
@@ -154,7 +158,7 @@ void main() {
 /* ──────────────────────────────── TowerSet ──────────────────────────────── */
 
 const DEFAULT_SPEC = { x: 0, z: 0, y: 0, w: 60, d: 40, h: 200, rot: 0, crown: null, crownScale: 1, crownDepth: null, crownLift: 0,
-  t0: -1e6, dur: 14, land: null, ease: 'slam', mode: 'slide', pitch: 4.2, seed: 0, tint: 0, drop: 0, dropDur: 4 };
+  t0: -1e6, dur: 14, land: null, ease: 'slam', mode: 'slide', pitch: 4.2, seed: 0, tint: 0, drop: 0, dropDur: 4, riseH: 0 };
 
 export class TowerSet {
   /** opts: {lod: 0|1|2 crown mesh detail, shadow: cast shadows (default true), name} */
@@ -167,9 +171,13 @@ export class TowerSet {
       t0 (frame the shaft starts rising; default already risen), dur (frames to rise), ease ('slam'|'out'|'back'|'linear'),
       mode ('slide' rigid rise from underground | 'grow' extrude up), land (frame the crown touches down; default t0+dur),
       drop (m the crown falls from) + dropDur (frames, default 4): crown plummets and lands exactly on `land`,
+      riseH (m; stacked tiers: the rigid rise travels this far, so tiers of one tower share t0/dur/mode and riseH = total stack height),
       pitch (floor pitch m), seed, tint. */
   add(spec) { const s = { ...DEFAULT_SPEC, ...spec }; if (s.land == null) s.land = s.t0 + s.dur; this.specs.push(s); return this.specs.length - 1; }
   addAll(list) { for (const s of list) this.add(s); return this; }
+  /** A custom extruded prism that rises like a tower (bridges, crowns with voids...). geometry: THREE.BufferGeometry from logo.extrude() with
+      x,y in METRES and z thickness 1 (scaled by depth). spec: {x,y,z,rot,depth,t0,dur,ease,mode,riseH,land,drop,dropDur,h (rise travel height)}. */
+  addPrism(geometry, spec) { (this.prisms ||= []).push({ geometry, s: { ...DEFAULT_SPEC, w: 1, d: 1, h: 0, ...spec } }); return this; }
   get count() { return this.specs.length; }
   /** frames where crowns/shafts touch down, sorted: [{f, i, x, z, h}] (use for impacts: camera shake, ground rings, audio sync checks). */
   landings() { return this.specs.map((s, i) => ({ f: s.crown ? s.land : s.t0 + s.dur, i, x: s.x, z: s.z, h: s.h })).filter((l) => l.f > -1e5).sort((a, b) => a.f - b.f); }
@@ -179,7 +187,7 @@ export class TowerSet {
   build() {
     for (const m of this.meshes) { this.group.remove(m); m.geometry.dispose(); }
     this.meshes = [];
-    const n = this.specs.length; if (!n) { this.built = true; return this; }
+    const n = this.specs.length;
     const mk = (idx) => {
       const N = idx.length, aPos = new Float32Array(N * 4), aDim = new Float32Array(N * 4), aRise = new Float32Array(N * 4), aDrop = new Float32Array(N * 4), aCrown = new Float32Array(N * 4);
       idx.forEach((si, k) => {
@@ -189,7 +197,8 @@ export class TowerSet {
         aDrop.set([s.drop, s.dropDur, s.seed, s.tint], o);
         let cs = 1, cd = s.crownDepth ?? s.d;
         if (s.crown) cs = (s.w / crownSize(s.crown).width) * s.crownScale;
-        aCrown.set([cs, cd, s.crownLift, 0], o);
+        if (s.crown === 'S') cd = cs;   // sphere: z is native size
+        aCrown.set([cs, cd, s.crownLift, s.riseH || 0], o);
       });
       return { N, aPos, aDim, aRise, aDrop, aCrown };
     };
@@ -199,7 +208,7 @@ export class TowerSet {
       g.setAttribute('aDim', new THREE.InstancedBufferAttribute(d.aDim, 4));
       g.setAttribute('aRise', new THREE.InstancedBufferAttribute(d.aRise, 4));
       g.setAttribute('aDrop', new THREE.InstancedBufferAttribute(d.aDrop, 4));
-      if (withCrown) g.setAttribute('aCrown', new THREE.InstancedBufferAttribute(d.aCrown, 4));
+      g.setAttribute('aCrown', new THREE.InstancedBufferAttribute(d.aCrown, 4));
       g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1e7);
     };
     const instGeo = (base) => { const g = new THREE.InstancedBufferGeometry(); g.index = base.index; for (const k of Object.keys(base.attributes)) g.setAttribute(k, base.attributes[k]); return g; };
@@ -209,13 +218,27 @@ export class TowerSet {
       this.group.add(m); this.meshes.push(m); return m;
     };
     // shafts
-    const all = this.specs.map((_, i) => i), dS = mk(all), gS = instGeo(shaftBase()); attach(gS, dS, false);
-    mesh(gS, makeMaterial({ vert: VERT_SHAFT, frag: FRAG_SHAFT }), makeShadowMaterial({ vert: VERT_SHAFT }), 1);
+    const all = this.specs.map((_, i) => i);
+    if (n) { const dS = mk(all), gS = instGeo(shaftBase()); attach(gS, dS, false);
+      mesh(gS, makeMaterial({ vert: VERT_SHAFT, frag: FRAG_SHAFT }), makeShadowMaterial({ vert: VERT_SHAFT }), 1); }
     // crowns, one instanced mesh per kind
-    for (const kind of CROWN_KINDS) {
+    for (const kind of n ? CROWN_KINDS : []) {
       const idx = all.filter((i) => this.specs[i].crown === kind); if (!idx.length) continue;
       const d = mk(idx), g = instGeo(crownGeometry(kind, this.lod)); attach(g, d, true);
       mesh(g, makeMaterial({ vert: VERT_CROWN, frag: FRAG_CROWN }), makeShadowMaterial({ vert: VERT_CROWN }), 2);
+    }
+    for (const pr of this.prisms || []) {
+      const s = pr.s; if (s.land == null || s.land === DEFAULT_SPEC.land) s.land = s.t0 + s.dur;
+      const g = new THREE.InstancedBufferGeometry(); g.index = pr.geometry.index; for (const k of Object.keys(pr.geometry.attributes)) g.setAttribute(k, pr.geometry.attributes[k]); g.instanceCount = 1;
+      const one = (a) => new THREE.InstancedBufferAttribute(new Float32Array(a), 4);
+      const riseH = s.riseH || s.h || 0;
+      g.setAttribute('aPos', one([s.x, s.y, s.z, s.rot])); g.setAttribute('aDim', one([1, 1, 0, s.pitch]));
+      g.setAttribute('aRise', one([s.t0, Math.max(s.dur, 0.001), s.land ?? s.t0 + s.dur, (s.mode === 'grow' ? 10 : 0) + (EASE_KIND[s.ease] ?? 1)]));
+      g.setAttribute('aDrop', one([s.drop, s.dropDur, s.seed, s.tint])); g.setAttribute('aCrown', one([1, s.depth ?? 20, 0, riseH]));
+      g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e7);
+      const m = new THREE.Mesh(g, makeMaterial({ vert: VERT_CROWN, frag: FRAG_CROWN })); m.frustumCulled = false; m.renderOrder = 2;
+      if (this.castShadow) { m.userData.shadowMaterial = makeShadowMaterial({ vert: VERT_CROWN }); m.layers.enable(1); }
+      this.group.add(m); this.meshes.push(m);
     }
     this.built = true;
     return this;
@@ -242,7 +265,7 @@ export class JackTower {
     const one = (a) => new THREE.InstancedBufferAttribute(new Float32Array(a), 4);
     const mkGeo = (base, crown) => { const g = new THREE.InstancedBufferGeometry(); g.index = base.index; for (const k of Object.keys(base.attributes)) g.setAttribute(k, base.attributes[k]); g.instanceCount = 1;
       g.setAttribute('aPos', one([x, 0, z, 0])); g.setAttribute('aDim', one([w, d, 1, pitch])); g.setAttribute('aRise', one([-1e6, 1, 0, 3])); g.setAttribute('aDrop', one([0, 1, 0, 0]));
-      if (crown) g.setAttribute('aCrown', one([this.crownS, this.crownDepth, 0, 0]));
+      g.setAttribute('aCrown', one(crown ? [this.crownS, this.crownDepth, 0, 0] : [1, 1, 0, 0]));
       g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e7); return g; };
     this.uTop = { value: 0 }; this.uBaseY = { value: 0 }; this.uSeam = { value: this._seam };
     const shaftMat = makeMaterial({ vert: VERT_SHAFT, frag: FRAG_SHAFT, defines: { JACK: 1 }, uniforms: { uTop: this.uTop, uSeam: this.uSeam } });

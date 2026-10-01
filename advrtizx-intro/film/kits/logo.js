@@ -4,7 +4,8 @@
    2D:  logo.draw(g, {...})            exact Path2D of the original path data.
    3D:  logo.crownGeometry('A', lod)   exact profile extruded (smooth normals on fillets/arcs, hard on corners), z in [-0.5, 0.5].
    Crown kinds: 'A' (logo orientation), 'Am' (mirrored), 'Dd' (D as a dome, arc up), 'Ds' (D in logo orientation, arc right),
-                'Dsm' (arc left). Every crown profile is centred on x, bottom edge at y = 0. */
+                'Dsm' (arc left), 'S' (the D revolved: a sphere, diameter 100 mark units).
+                Every crown profile is centred on x, bottom edge at y = 0. */
 import * as THREE from 'three';
 
 export const MARK = {
@@ -150,7 +151,7 @@ export function profile(kind, tol = 0.015) {
   polyCache.set(key, out);
   return out;
 }
-export const CROWN_KINDS = ['A', 'Am', 'Dd', 'Ds', 'Dsm'];
+export const CROWN_KINDS = ['A', 'Am', 'Dd', 'Ds', 'Dsm', 'S'];
 
 /** Point-in-polygon (even-odd) for CCW or CW polygons. */
 export function polyContains(pts, x, y) {
@@ -168,30 +169,35 @@ export const markContains = (which, x, y) => { const m = markPolys(); return (wh
 
 const geoCache = new Map();
 
-/** Extrudes a CCW polygon (y up) along z in [-0.5, 0.5]. Corners sharper than smoothDeg keep hard normals, arcs are smooth. */
-export function extrude(pts, { smoothDeg = 38 } = {}) {
-  const n = pts.length, pos = [], nor = [];
-  const edgeN = [];
-  for (let i = 0; i < n; i++) { const a = pts[i], b = pts[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; edgeN.push([dy / l, -dx / l]); }
+/** Extrudes a CCW polygon (y up) along z in [-0.5, 0.5]. Corners sharper than smoothDeg keep hard normals, arcs are smooth.
+    opts.holes: array of polygons (any winding) cut through the prism (side walls face into the void). */
+export function extrude(pts, { smoothDeg = 38, holes = [] } = {}) {
+  const pos = [], nor = [];
   const cosT = Math.cos(smoothDeg * Math.PI / 180);
-  const vN = (i) => { // [normal at vertex i for the edge leaving it, normal at vertex i for the edge arriving]
-    const nin = edgeN[(i - 1 + n) % n], nout = edgeN[i];
-    if (nin[0] * nout[0] + nin[1] * nout[1] > cosT) { const sx = nin[0] + nout[0], sy = nin[1] + nout[1], l = Math.hypot(sx, sy) || 1; const m = [sx / l, sy / l]; return [m, m]; }
-    return [nout, nin];
-  };
   const tri = (a, b, c, na, nb, nc) => { pos.push(...a, ...b, ...c); nor.push(...na, ...nb, ...nc); };
-  // side walls
-  for (let i = 0; i < n; i++) {
-    const j = (i + 1) % n, a = pts[i], b = pts[j], [na] = vN(i), [, nb] = vN(j);
-    const A0 = [a[0], a[1], -0.5], A1 = [a[0], a[1], 0.5], B0 = [b[0], b[1], -0.5], B1 = [b[0], b[1], 0.5];
-    const nA = [na[0], na[1], 0], nB = [nb[0], nb[1], 0];
-    tri(A0, B0, B1, nA, nB, nB); tri(A0, B1, A1, nA, nB, nA);
-  }
-  // caps (triangulated)
-  const tris = THREE.ShapeUtils.triangulateShape(pts.map(([x, y]) => new THREE.Vector2(x, y)), []);
+  const walls = (loop) => {
+    const n = loop.length, edgeN = [];
+    for (let i = 0; i < n; i++) { const a = loop[i], b = loop[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; edgeN.push([dy / l, -dx / l]); }
+    const vN = (i) => {
+      const nin = edgeN[(i - 1 + n) % n], nout = edgeN[i];
+      if (nin[0] * nout[0] + nin[1] * nout[1] > cosT) { const sx = nin[0] + nout[0], sy = nin[1] + nout[1], l = Math.hypot(sx, sy) || 1; const m = [sx / l, sy / l]; return [m, m]; }
+      return [nout, nin];
+    };
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n, a = loop[i], b = loop[j], [na] = vN(i), [, nb] = vN(j);
+      const A0 = [a[0], a[1], -0.5], A1 = [a[0], a[1], 0.5], B0 = [b[0], b[1], -0.5], B1 = [b[0], b[1], 0.5];
+      const nA = [na[0], na[1], 0], nB = [nb[0], nb[1], 0];
+      tri(A0, B0, B1, nA, nB, nB); tri(A0, B1, A1, nA, nB, nA);
+    }
+  };
+  walls(pts);
+  const hs = holes.map((h) => (area(h) > 0 ? h.slice().reverse() : h));      // holes: CW, so their walls face into the void
+  for (const h of hs) walls(h);
+  // caps (triangulated, holes supported)
+  const all = pts.concat(...hs);
+  const tris = THREE.ShapeUtils.triangulateShape(pts.map(([x, y]) => new THREE.Vector2(x, y)), hs.map((h) => h.map(([x, y]) => new THREE.Vector2(x, y))));
   for (const [i, j, k] of tris) {
-    const a = pts[i], b = pts[j], c = pts[k];
-    // front cap (+z): ensure CCW seen from +z
+    const a = all[i], b = all[j], c = all[k];
     const cr = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
     const [p, q, r] = cr > 0 ? [a, b, c] : [a, c, b];
     tri([p[0], p[1], 0.5], [q[0], q[1], 0.5], [r[0], r[1], 0.5], [0, 0, 1], [0, 0, 1], [0, 0, 1]);
@@ -208,12 +214,15 @@ export function extrude(pts, { smoothDeg = 38 } = {}) {
 export function crownGeometry(kind, lod = 0) {
   const key = kind + ':' + lod;
   if (geoCache.has(key)) return geoCache.get(key);
+  if (kind === 'S') {   // the D revolved about its flat edge: a sphere of diameter 100 mark units, bottom at y = 0
+    const g = new THREE.SphereGeometry(50, [64, 32, 20][lod] ?? 20, [32, 16, 10][lod] ?? 10); g.translate(0, 50, 0); geoCache.set(key, g); return g;
+  }
   const tol = [0.015, 0.12, 0.6][lod] ?? 0.6;
   const g = extrude(profile(kind, tol).pts, { smoothDeg: lod === 0 ? 38 : 50 });
   geoCache.set(key, g);
   return g;
 }
-export const crownSize = (kind) => { const p = profile(kind); return { width: p.width, height: p.height }; };
+export const crownSize = (kind) => { if (kind === 'S') return { width: 100, height: 100 }; const p = profile(kind); return { width: p.width, height: p.height }; };
 
 /* ─────────────────────────── 2D drawing (exact Path2D) ─────────────────────────── */
 
