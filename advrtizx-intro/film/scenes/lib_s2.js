@@ -89,9 +89,9 @@ export const SETBACK = (h, rng) => (h > 190 ? [{ f: 0.46, wf: 1 }, { f: 0.28, wf
 /* ───────────────────────────── timing ───────────────────────────── */
 
 /** Gives every tower t0/dur/land/drop so its CROWN lands on hit + wave. Shafts arrive together (taller = longer rise, same lock frame). */
-export function timeTowers(towers, { hit, rng, dropDur = 4, dur = [6, 9], drop = [70, 140], tall = 220 } = {}) {
+export function timeTowers(towers, { hit, rng, dropDur = 4, dur = [6, 9], drop = [70, 140], tall = 220, waveScale = 1 } = {}) {
   for (const T of towers) {
-    const L = hit + (T.wave || 0);
+    const L = hit + Math.round((T.wave || 0) * waveScale);
     T.land = L; T.dur = Math.round(lerp(dur[0], dur[1], rng()) + clamp(T.h / tall, 0, 2) * 1.5);
     T.t0 = L - T.dur; T.drop = T.crown ? lerp(drop[0], drop[1], rng()) : 0; T.dropDur = dropDur;
   }
@@ -261,8 +261,8 @@ export const CITIES = {
 
   /* MIAMI: slender towers on a thin strip between two waters (seen along the strip) */
   miami(rng, o = {}) {
-    const al = 0.62, ux = -Math.sin(al), uz = -Math.cos(al), rotA = Math.atan2(ux, uz), S0 = [400, 190], LEN = 1500;
-    const cam = fitCam({ pos: [150, 96, 560], look: [-90, 150, -300], fov: 42, push: [-22, 2, -44] }, 420, 0.84), S = roofAt(cam);
+    const al = 0.62, ux = -Math.sin(al), uz = -Math.cos(al), rotA = Math.atan2(ux, uz), S0 = [330, 40], LEN = 1500;
+    const cam = fitCam({ pos: [330, 120, 860], look: [-60, 150, -300], fov: 40, push: [-22, 2, -50] }, 700, 0.84), S = roofAt(cam);
     const T = [], pick = crownSeq(rng, { A: 0.4, Am: 0.15, Dd: 0.3, Ds: 0.1, Dsm: 0.05 });
     for (let s = 40; s < LEN; s += rng.range(52, 68)) {
       const k = s / LEN, h = lerp(100, 340, Math.pow(Math.sin(Math.PI * Math.pow(k, 0.62)), 1.0) * (0.55 + 0.45 * rng())), w = rng.range(24, 30), side = rng.range(-10, 10);
@@ -362,11 +362,12 @@ export function patchHaze(set, haze, hazeLow = 1) {
 }
 
 /** Builds one city: {group, sets[], water[], towers, ...}. hit = frame its main wave's crowns land. Towers are split into haze LAYERS (def.hazes[layer] = [haze, hazeLow]). */
-export function buildCity(kits, name, { hit = 0, seed = name, lod = 0, shadow = true, thinF = 1, dropDur = 4, durRange = [6, 9] } = {}) {
+export function buildCity(kits, name, { hit = 0, seed = name, lod = 0, shadow = true, thinF = 1, dropDur = 4, durRange = [6, 9], waveScale = 1, hScale = 1 } = {}) {
   const rng = makeRng('s2:' + seed);
   const def = CITIES[name](rng, { thin: thinF });
   const trng = makeRng('s2t:' + seed);
-  timeTowers(def.towers, { hit, rng: trng, dropDur, dur: durRange });
+  timeTowers(def.towers, { hit, rng: trng, dropDur, dur: durRange, waveScale });
+  if (hScale !== 1) for (const T of def.towers) T.h *= hScale;
   const nL = Math.max(1, ...def.towers.map((T) => (T.layer || 0) + 1), ...def.prisms.map((P) => (P.spec.layer || 0) + 1));
   const sets = [], group = new THREE.Group(); group.name = 'city:' + name;
   const crownSize = kits.logo.crownSize;
@@ -391,8 +392,8 @@ export function buildCity(kits, name, { hit = 0, seed = name, lod = 0, shadow = 
 
 /** A huge name as a 3D type plane. Returns the plane plus the numbers needed to place it by BASELINE and fit it by ink size (world metres per texture px = k).
     The type material is patched locally with a GROUND MIST: below y0 the letters dissolve into the brand red, fully white above y1 (set per frame via mistU). */
-export function makeName(kits, text, { lang, stretch = 75, track = -0.035, fog = 0.5, weight = 900, tint = [1, 1, 1] } = {}) {
-  const T = kits.type, size = 512, opt = { size, weight, stretch, track, lang };
+export function makeName(kits, text, { lang, stretch = 75, track = -0.035, fog = 0.5, weight = 900, tint = [1, 1, 1], size = 512 } = {}) {
+  const T = kits.type, opt = { size, weight, stretch, track, lang };
   const p = T.plane(text, { ...opt, fogAmount: fog, worldHeight: 100, tint });
   const m = T.measure(text, opt), pad = Math.round(size * 0.12);
   const mat = p.mesh.material, mistU = { y0: { value: 0 }, y1: { value: 1 }, lo: { value: 0.2 } };

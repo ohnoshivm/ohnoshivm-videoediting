@@ -25,6 +25,8 @@ export default async function act2(ctx) {
     tl.mesh.position.set(0, ln.baseline + tl.centreAboveBaseline, 0); block.add(tl.mesh); return { ...ln, tl };
   });
 
+  const dub = L.buildDubai(ctx, L.rail3(P0, RAIL)); ctx.root.add(dub.group);
+
   /* ── impacts ── */
   const IMPACTS = [{ f: 128, amp: 2.0, decay: 3.2, freq: 0.5, seed: 1 }, { f: 160, amp: 1.5, decay: 3.0, freq: 0.55, seed: 2 }, { f: 224, amp: 3.8, decay: 4.2, freq: 0.5, seed: 3 }];
 
@@ -42,11 +44,30 @@ export default async function act2(ctx) {
       cam.shake = t < 240 ? addShake(shake(t, IMPACTS, { rollScale: 0.3 })) : addShake(shake(t, IMPACTS, { rollScale: 0.3 }), rumble(t, 240, 256, 0.25, 2.2, { freq: 0.95, seed: 9 }));
       // type: line 1+2 land on f128 (scale pulse), line 3 rises from its mask on f160
       const p128 = clamp((t - 127.5) / 6.5), s128 = 1 + 0.17 * Math.pow(1 - EASE.outExpo(p128), 1.0);
-      block.scale.setScalar(s128);
+      block.scale.setScalar(s128); block.visible = t < 221;
       lines[0].tl.mesh.visible = lines[1].tl.mesh.visible = t >= 127.5;
       const rise = EASE.outExpo(clamp((t - 159.5) / 8));
       lines[2].tl.mesh.visible = t >= 159.5; lines[2].tl.setShift(1 - rise);
     },
-    overlay(t, g) { return false; },
+    overlay(t, g) {
+      const T0 = 219.6, HIT = 224;
+      if (t < T0 || t > 244) return false;
+      const T = ctx.kits.type, sh = shake(t, IMPACTS, { rollScale: 0.3 });
+      let s = 1;
+      if (t < HIT) s = lerp(2.5, 1, EASE.slam(clamp((t - T0) / (HIT - T0))));
+      else s = 1 - 0.035 * Math.sin(clamp((t - HIT) / 4) * Math.PI) * Math.exp(-(t - HIT) / 3);
+      const dy = t > 239.5 ? -1500 * EASE.inCubic(clamp((t - 239.5) / 4)) : 0;
+      const ppd = 1080 / 52;
+      g.translate(960 + sh.yaw * -ppd * 1.0, 540 + sh.pitch * ppd + dy); g.rotate(sh.roll * L.DEG); g.scale(s, s);
+      const W = 1760, lines = [['WE SELL', 0], ['THEM.', 1]];
+      const m = lines.map(([tx]) => T.measure(tx, { size: 100, stretch: 125, track: -0.04 }));
+      const em = m.map((q) => W / (q.width / 100)), cap = m.map((q, i) => q.ascent / 100 * em[i]);
+      const gap = 56, H = cap[0] + cap[1] + gap; let y = -H / 2;
+      for (const pass of [0, 1]) { let yy = -H / 2; lines.forEach(([tx], i) => {
+        yy += cap[i];
+        T.draw(g, tx, pass ? { x: 0, y: yy, size: em[i], stretch: 125, track: -0.04, align: 'center', fill: '#fff' } : { x: 0, y: yy, size: em[i], stretch: 125, track: -0.04, align: 'center', fill: '#E80101', stroke: '#E80101', strokeWidth: 18 });
+        yy += gap; }); }
+      return true;
+    },
   };
 }

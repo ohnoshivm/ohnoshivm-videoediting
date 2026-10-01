@@ -47,7 +47,7 @@ export default function act6(ctx) {
   const poseAt = (t) => {
     const u = t - U0, ur = clamp((u - (RISE0 - U0)) / (END + 1 - RISE0));
     const rise = EASE.inCubic(ur), tilt = EASE.inOutSine(ur);
-    const y = Y0 + 470 * rise, pitch = lerp(P.pitch0, -8.0, tilt) * DEG, yaw = yawT(u) * DEG, fov = lerp(FOV0, 36, tilt);
+    const y = Y0 + 250 * rise, pitch = lerp(P.pitch0, -1.0, tilt) * DEG, yaw = yawT(u) * DEG, fov = lerp(FOV0, 30, tilt);
     const pos = [camX(u), y, 0];
     const look = [pos[0] + Math.sin(yaw) * Math.cos(pitch) * 1000, y + Math.sin(pitch) * 1000, -Math.cos(yaw) * Math.cos(pitch) * 1000];
     return { pos, look, fov };
@@ -176,7 +176,6 @@ export default function act6(ctx) {
     }
   }
 
-  if (true) { const vis = towers.filter((tw) => { const [sx, sy, dp] = sxAt(tw, U0); return dp > 0 && Math.abs(sx) < 1.2; }); console.log('DBG towers', towers.length, 'visible@896', vis.length, 'rows', rows.length, 'Xend', Xend.toFixed(0), 'row0', JSON.stringify(rows[0]), 'cam', JSON.stringify(poseAt(U0)), 'b0', JSON.stringify(boards[0].P), boards[0].H.toFixed(1), boards[0].W.toFixed(1)); const near = vis.filter((tw) => tw.depth < 700).map((tw) => `${tw.depth.toFixed(0)}:${tw.x.toFixed(0)}:${tw.w.toFixed(0)}x${tw.h.toFixed(0)}`); console.log('DBG near', near.join(' ')); }
   /* ───────────── three LOD sets, nearest first (early-z) ───────────── */
   const sets = [];
   const mkSet = (name, lod, shadow, filt) => {

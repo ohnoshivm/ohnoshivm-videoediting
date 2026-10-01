@@ -22,7 +22,7 @@ const final = flag('final') || !flag('draft');
 const from = Math.max(0, +arg('from', 0)), to = Math.min(FRAMES - 1, +arg('to', FRAMES - 1)), n = to - from + 1;
 const scale = +arg('scale', final ? 1 : 0.5);
 const W = Math.round(1920 * scale), H = Math.round(1080 * scale);
-const workers = Math.max(1, +arg('workers', final ? 2 : 3));
+const workers = Math.max(1, +arg('workers', final ? 3 : 3));
 const out = path.resolve(process.cwd(), arg('out', path.join(ROOT, 'renders', final ? 'advrtizx-intro-1080p.mp4' : 'advrtizx-intro-draft.mp4')));
 const crf = +arg('crf', final ? 17 : 23), preset = String(arg('preset', final ? 'slow' : 'veryfast'));
 const maxrate = String(arg('maxrate', final ? '10M' : '6M')), bufsize = String(arg('bufsize', final ? '20M' : '12M'));

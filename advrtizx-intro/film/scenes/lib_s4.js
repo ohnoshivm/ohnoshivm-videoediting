@@ -67,10 +67,9 @@ export function sdA(a, b) {
   return Math.max(d, BITE.r - Math.hypot(a - BITE.c[0], b - BITE.c[1]));
 }
 export function sdD(a, b) {
-  const qx = Math.abs(a - (D0 + D1) / 2) - (D1 - D0) / 2, qy = Math.abs(b - 50) - 50;
+  const qx = D0 - a, qy = Math.abs(b - 50) - 50;
   const dr = Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0);
-  const dc = Math.hypot(a - D1, b - 50) - DR, dh = Math.max(dc, D1 - a);
-  return Math.min(dr, dh);
+  return a < D1 ? dr : Math.hypot(a - D1, b - 50) - DR;
 }
 export const sdAD = (a, b) => Math.min(sdA(a, b), sdD(a, b));
 
@@ -95,10 +94,9 @@ float sdA(vec2 p) {
   return max(d, 21.2 - length(p - vec2(60.9, -13.9)));
 }
 float sdD(vec2 p) {
-  vec2 q = abs(p - vec2(147.65, 50.0)) - vec2(22.05, 50.0);
+  vec2 q = vec2(125.6 - p.x, abs(p.y - 50.0) - 50.0);
   float dr = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
-  float dh = max(length(p - vec2(169.7, 50.0)) - 50.0, 169.7 - p.x);
-  return min(dr, dh);
+  return p.x < 169.7 ? dr : length(p - vec2(169.7, 50.0)) - 50.0;
 }
 float sdAD(vec2 p) { return min(sdA(p), sdD(p)); }
 `;
@@ -140,7 +138,7 @@ void main() {
   float s = u * u * u;
   float ant = smoothstep(t0 - 18.0, t0 - 7.0, uTime) * (1.0 - smoothstep(t0 - 6.0, t0 - 3.6, uTime)) * uAnt;
   float gapK = 1.0 + 0.55 * ant;
-  float ov = 0.06 * s;
+  float ov = 0.1 * s;
   float L = aA.x + aB.x * (1.0 - s) * gapK - ov, R = aA.y - aB.y * (1.0 - s) * gapK + ov;
   float xa = mix(L, R, position.x);
   float hp = hpre + 0.9 * ant * aA.z * 0.0 + 1.1 * ant;                    // tops draw up a hair on the breath-in
@@ -167,6 +165,7 @@ in vec3 vWorld; in vec3 vN; flat in float vFace;
 out vec4 outColor;
 void main() {
   vec3 n = normalize(vN);
+  if (uFlat > 0.5 && vFace < 0.5) discard;   // fused: the wall is one plane, its seams are never seen
   float pitch = 4.2;
   float yc = vWorld.y;
   float hc = vFace < 0.5 ? vWorld.z : vWorld.x;
