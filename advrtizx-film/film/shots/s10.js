@@ -5,7 +5,7 @@
    f1170 equals S09's last frame (slabs at 656 / 1264, the complete stop card). S10 is pure white from f1342. */
 (function () {
   const { registerShot, SPEC, text, rise, exit, prog, tween, EASE, C, LW, path, polySegs, rect, g, fmt } = TA;
-  const { card10 } = TA.act3;
+  const A3 = TA.kit('act3'), card10 = (f, o) => A3.card10(f, o);   // s09's stop card, read at render time
   const INK = C.RED, WHITE = C.WHITE;
 
   const G = 780, X0 = 300, RISE = 72, RUN = 96, N = 7, T0 = 1185, BEAT = 15;
@@ -13,7 +13,11 @@
   const LABELS = ['SEEN', 'STOPPED', 'TAPPED', 'ENQUIRED', 'CALLED BACK', 'VISITED', 'KEYS'];
   const LAND = { x0: X0 + N * RUN, x1: X0 + N * RUN + 400, y: G - N * RISE };            // 972 → 1372 at y 276
   const BLK = { x0: 1000, x1: 1320, yb: LAND.y, h: 480 };                                  // door block 1000–1320, 276 up to −204
-  const DRIFT = [-576, 432], SLOT = [584, 468], K_PUSH = 1e6;
+  // Framing: the whole stair world sits FX px right of the treatment's numbers, so the door block lands centred (screen x 800–1120,
+  // slot 860–1060 = the S08 slot's centre line) instead of at 424–744 with an empty right half. The drift itself is unchanged
+  // (−96, +72 per beat, the stair's own pitch); the push then only pans vertically. Nothing of the stair exists at f1170, so the
+  // S09 handoff (card, horizon, sun: all screen-fixed) is untouched.
+  const FX = 376, DRIFT = [-576, 432], SLOT = [584 + FX, 468], K_PUSH = 1e6;
 
   const soffit = (x) => G + SOFF - 0.75 * (x - X0);
   /** polygon ∩ {y ≤ ymax} (Sutherland–Hodgman, one half-plane) */
@@ -28,9 +32,9 @@
   }
   const clampv = (v) => Math.max(-6000, Math.min(8000, v));
 
-  /** world → screen at frame f: SURVEY climb, then the LIFT push about the slot centre (584,468) panning it to (960,540). */
+  /** world → screen at frame f: SURVEY climb, then the LIFT push about the slot centre (960,468) panning it to (960,540). */
   function camera(f) {
-    const u = prog(f, 1200, 1290), off = [DRIFT[0] * u, DRIFT[1] * u];
+    const u = prog(f, 1200, 1290), off = [FX + DRIFT[0] * u, DRIFT[1] * u];
     const e = prog(f, 1320, 1349, EASE.LIFT), s = Math.exp(e * Math.log(K_PUSH));
     const ep = prog(f, 1320, 1342, EASE.LIFT), P = [SLOT[0] + (960 - SLOT[0]) * ep, SLOT[1] + (540 - SLOT[1]) * ep];   // the pan lands exactly as the slot fills the frame
     return (p) => [P[0] + s * (p[0] + off[0] - SLOT[0]), P[1] + s * (p[1] + off[1] - SLOT[1])];

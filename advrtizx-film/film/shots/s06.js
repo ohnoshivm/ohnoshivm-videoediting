@@ -15,7 +15,7 @@
 (function () {
   const { registerShot, SPEC, text, path, prog, tween, clamp, lerp, EASE, C, LW, V, DEG, CAMS, PLAN, camTween, drawPlan, clipTo,
           arcSegs, lineSegs, exit, fmt, measure, splitFlap } = TA;
-  const A2 = (TA.act2 = TA.act2 || {});
+  const A2 = TA.kit('act2');   // shared with s04 (measureLines, read at render time) and S07
   const RED = C.RED, SIZE_SUN = 40, SIZE_BUYER = 34;
 
   /* ═════════════ MEANING / MEASURE label layout (shared with S07) ═════════════ */
@@ -140,7 +140,7 @@
       out.push(wedge(c, phi, THROW * EASE.DRAFT(prog(f, 545, 557)) * (1 - exitP)));
 
       // ── the plan: canonical, no labels (they are S04's, rewritten below) ──
-      out.push(drawPlan(c, { labels: false, scale: 0 }), A2.erasePlanNubs(c));   // scale bar off: at 5.4 px/MU it would hang on the bottom edge with its numerals cut
+      out.push(drawPlan(c, { labels: false, scale: 0 }));   // scale bar off: at 5.4 px/MU it would hang on the bottom edge with its numerals cut
 
       // ── labels ──
       out.push(measureStatic(c, 'PORCH'));

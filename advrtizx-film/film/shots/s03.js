@@ -6,7 +6,7 @@
    Layout is derived from the zoomed A itself: 16 rows × 30.9px exactly fill the A (30px × 1.03). */
 (function () {
   const { registerShot, SPEC, text, prog, EASE, C, camZoom, CAMS, markA, segsToD, uid, clamp, fmt, TIME } = TA;
-  const A1 = TA.act1, K = 1.03;
+  const A1 = TA.kit('act1'), K = 1.03;   // A1.layers (s02) is read at render time
   const PATTERN = '860 SQ FT · 1 BED · 1 BATH · EAST-FACING · ';
   const ROW = PATTERN.repeat(6);
   const PERIOD = PATTERN.length * (0.6 * 20 + 0.08 * 20);        // Plex Mono advance 0.6em + 0.08em tracking → 584.8px

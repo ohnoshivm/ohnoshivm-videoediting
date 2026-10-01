@@ -19,7 +19,7 @@
   const { registerShot, SPEC, text, path, prog, tween, logTween, keys, clamp, EASE, C, LW, V, DEG, CAMS, PLAN, SLOPE, MARK,
           fold, camZoom, camLerp, camTween, drawPlan, dimString, slopeOrder, slopeAt, markA, markD, segsToD,
           arcSegs, lineSegs, polySegs, circleSegs, trimSegs, rise, uid, fmt, measure } = TA;
-  const A1 = TA.act1;
+  const A1 = TA.kit('act1'), A2 = TA.kit('act2');   // A1 from s01/s02 (read lazily, on the first render); A2 is shared with S06/S07
   const PERSPECTIVE = 2000, RED = C.RED, WHITE = C.WHITE;
 
   /* ───────────── geometry helpers ───────────── */
@@ -42,9 +42,16 @@
   }
 
   /* ───────────── S03's end pose, as screen-space pieces (identical constants to S02's TA.act1.layers) ───────────── */
-  const { V0, V3, V7, ANG0, tint, Zc, Zpt } = A1;
+  let V0, V3, V7, ANG0, tint, Zc, Zpt, PENCIL, EDGE;   // bound by init() on the first render, so S04 does not depend on load order
+  function init() {
+    if (EDGE) return;
+    ({ V0, V3, V7, ANG0, tint, Zc, Zpt } = TA.need('act1', ['V0', 'V3', 'V7', 'ANG0', 'tint', 'Zc', 'Zpt', 'inkSegs', 'layers', 'grid'], 'S04'));
+    PENCIL = tint(0.25);                                                  // RED_25 residue
+    // the edge-on line: left end of the folded ink (its fillet), right end = the A's edge at 1262.4
+    const E = elevationParts(1), xs = fold.segs(E.ink, 90, foldOpts(780)).filter((s) => s[0] !== 'Z').map((s) => s[1]);
+    EDGE = { x0: Math.min(...xs), x1: Math.max(...xs) };
+  }
   const R = 600, TIP_END = [1260, 780], TOP_END = [660 + 125.5 * 4.8, 300];
-  const PENCIL = tint(0.25);                                            // RED_25 residue
   function elevationParts(k) {
     const Z = Zc(k), ZA = camZoom(CAMS.ACT1, k, [961, 540]), hair = { sw: LW.HAIR, cap: 'butt' };
     const tx = (segs) => toScreen(segs, Z);
@@ -96,9 +103,6 @@
     out.push(foldDim(dimParts(E.right[0], E.right[1], 24, "22'-5\""), dimP[1], deg, o));
     return out.join('');
   }
-  // the edge-on line: left end of the folded ink (its fillet), right end = the A's edge at 1262.4
-  const EDGE = (() => { const E = elevationParts(1), o = foldOpts(780), xs = fold.segs(E.ink, 90, o).filter((s) => s[0] !== 'Z').map((s) => s[1]);
-    return { x0: Math.min(...xs), x1: Math.max(...xs) }; })();
   const PLAN_END = 660 + 177.2 * 4.8;                                      // 1510.56: D base end
 
   /* ───────────── the plan, folded (replica of TA.drawPlan's geometry; used f360–385 only) ───────────── */
@@ -136,7 +140,7 @@
       out.push(fstroke(S(lineSegs(V.add(slopeAt(PLAN.glazeT[0]), n), V.add(slopeAt(PLAN.glazeT[1]), n))), deg, o, { stroke: RED, sw: LW.DETAIL, cap: 'butt' })); }
     for (const r of PLAN.bay.r) out.push(fstroke(S(arcSegs(PLAN.bay.c, r, PLAN.bay.a0, PLAN.bay.a1)), deg, o, { stroke: RED, sw: LW.DETAIL, cap: 'butt' }));
     // interior walls: 1.2 MU solid, mitred joins = a rectangle per leg, extended by half the wall at free ends and corners only
-    // (drawPlan's square caps also poke 0.6 MU through the outline at the three ends that start on it — NUBS — which erasePlanNubs() removes)
+    // (= drawPlan's butt-capped TA.wallLine: flush where a wall meets the outline)
     const hw = PLAN.wallW / 2, onOutline = (q) => q[1] === 0 || q[0] === 133.1;
     for (const w of PLAN.walls) for (let i = 0; i + 1 < w.length; i++) {
       const a = w[i], b = w[i + 1], d = V.norm(V.sub(b, a)), nn = [-d[1], d[0]], a2 = V.sub(a, V.mul(d, onOutline(a) ? 0 : hw)), b2 = V.add(b, V.mul(d, onOutline(b) ? 0 : hw));
@@ -162,22 +166,13 @@
     return out.join('');
   }
 
-  /** CORE WORKAROUND — drawPlan strokes PLAN.walls with square caps, so the three walls that start on the outline (kitchen and bath
-      tops, the bath's west end) poke 0.6 MU out through it. Paint those slivers out with paper, stopping a fraction of a pixel short of the
-      outline so the antialiased wall edge is not lightened. Draw AFTER drawPlan. Shared with S06/S07 (TA.act2.erasePlanNubs). */
-  function erasePlanNubs(c) {
-    const e = 0.15 / c.s, r = (x0, y0, x1, y1) => { const a = c.apply([x0, y0]), b = c.apply([x1, y1]); return `<rect x="${fmt(a[0])}" y="${fmt(a[1])}" width="${fmt(b[0] - a[0])}" height="${fmt(b[1] - a[1])}" fill="${WHITE}"/>`; };
-    return r(97.2, -0.9, 98.8, -e) + r(157.2, -0.9, 158.8, -e) + r(132.2, 37.2, 133.1 - e, 38.8);
-  }
-  (TA.act2 = TA.act2 || {}).erasePlanNubs = erasePlanNubs;
-
   /* ───────────── plan labels, dims, stamp (set on the beats, once the plan stands) ───────────── */
   const setP = (f, hit, dur = 8) => EASE.SET(clamp((f - hit + 1) / dur));       // first visible frame == the hit frame
   /** the MEASURE label's lines. The bath (22 MU) and the kitchen (24.5 MU) are only ~145–160px wide here: their one-line dims
       (`5'-7" × 8'-6"`, `6'-2" × 6'-9"`) run through both walls at 18px, so they stack on two lines (shared with S06).
       Everything else is PLAN.labels[key].measure. */
   const measureLines = (key) => (key === 'BATH' ? ['BATH', "5'-7\"", "× 8'-6\""] : key === 'KITCHEN' ? ['KITCHEN', "6'-2\"", "× 6'-9\""] : PLAN.labels[key].measure);
-  (TA.act2 = TA.act2 || {}).measureLines = measureLines;
+  A2.measureLines = measureLines;
   /** planLabel's MEASURE label, one rise per line (name, then dims 2f later) */
   function measureLabel(c, key, f, hit) {
     const L = PLAN.labels[key], p = c.apply(L.at), lines = measureLines(key), y0 = p[1] + 6 - (lines.length - 1) * 12;
@@ -197,7 +192,7 @@
   registerShot({
     ...SPEC.S04,
     render(lf, ctx) {
-      const f = ctx.f, out = [];
+      const f = ctx.f, out = []; init();
 
       /* ── f330–350: the elevation folds flat ── */
       if (f < 350) {
@@ -222,7 +217,7 @@
       const c = planCam(f), q = EASE.HINGE(prog(f, 360, 385)), deg = -90 * (1 - q);
       if (f >= 360) {
         if (deg < -1e-6) out.push(foldedPlan(c, deg));
-        else out.push(drawPlan(c, { labels: false, dims: 0, stamp: false }), erasePlanNubs(c));
+        else out.push(drawPlan(c, { labels: false, dims: 0, stamp: false }));
       }
 
       /* ── f390–: labels on the beats, dims and stamp on the 12f grid ── */

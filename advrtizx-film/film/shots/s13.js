@@ -69,15 +69,15 @@ TAG.track = ((HERO.apply([133.1, 0])[0] - 0.523 * TAG.size - TAG.x) / (TAG.str.l
           `<path d="${w.d}" fill="${C.RED}"/>`,                            // …the red field paints over its passed part…
           `<clipPath id="${id}"><path d="${w.d}"/></clipPath>` + g(drawMark({ cam: HERO, fill: C.WHITE }), { clip: id }));   // …and the white mark is clipped to the field
       }
-      /* ---- wordmark: Adv (f1680) · rtiz (f1684) · X (f1686–1695) ---- */
-      out.push(rise(word(0, 3), { p: prog(f, 1680, 1692, EASE.SET), baseline: WM.base, size: WM.size }));
-      out.push(rise(word(3, 7), { p: prog(f, 1684, 1696, EASE.SET), baseline: WM.base, size: WM.size }));
+      /* ---- wordmark: Adv (f1680) · rtiz (f1684) · X (f1686–1695). Masks start a frame early so each hit frame already shows the letters moving (as S05/S08/S10 do) ---- */
+      out.push(rise(word(0, 3), { p: prog(f, 1679, 1691, EASE.SET), baseline: WM.base, size: WM.size }));
+      out.push(rise(word(3, 7), { p: prog(f, 1683, 1695, EASE.SET), baseline: WM.base, size: WM.size }));
       const xl = getLayout().xl;
       out.push(sweptStroke(xl, '/', prog(f, 1686, 1692, EASE.DRAFT)));
       out.push(sweptStroke(xl, '\\', prog(f, 1689, 1695, EASE.DRAFT)));
       /* ---- the line ---- */
-      out.push(rise(text([{ t: TAG.str, track: TAG.track }], { x: TAG.x, y: TAG.base, voice: 'measure', size: TAG.size, fill: C.WHITE })   /* (core: text()'s own `track` option is ignored; a run's `track` works) */,
-        { p: prog(f, 1710, 1718, EASE.SET), baseline: TAG.base, size: TAG.size }));
+      out.push(rise(text(TAG.str, { x: TAG.x, y: TAG.base, voice: 'measure', size: TAG.size, track: TAG.track, fill: C.WHITE }),
+        { p: prog(f, 1709, 1717, EASE.SET), baseline: TAG.base, size: TAG.size }));
       return out;
     },
   });

@@ -8,7 +8,7 @@
 (function () {
   const { registerShot, SPEC, text, rise, path, rect, g, lineSegs, polySegs, prog, tween, EASE, C, LW, V, lerp, clamp,
           slopeOrder, easeInv, cam, camZoom, CAMS, fmt } = TA;
-  const A1 = (TA.act1 = TA.act1 || {});
+  const A1 = TA.kit('act1');
 
   /* ─── geometry (ACT1 px) ─── */
   const V0 = [660, 780], V3 = [1020, 780], V7 = [1020, 300];

@@ -17,7 +17,7 @@
    and keeps the logo from ever showing. */
 (function () {
   const { registerShot, SPEC, text, prog, clamp, lerp, EASE, C, V, CAMS, cam, drawPlan, clipTo, markA, markD, rise, fmt, splitFlap } = TA;
-  const A2 = TA.act2, RED = C.RED, S = 34;
+  const A2 = TA.kit('act2'), RED = C.RED, S = 34;
 
   /* ───────── the copy ───────── */
   const KEYS = ['BEDROOM', 'KITCHEN', 'LIVING', 'ENTRY', 'BATH'];                       // table column order (treatment) = audio order
@@ -65,10 +65,10 @@
       const c = f < 876 ? CAMS.BUYER : diveCam(f);
 
       /* ── the plan: always TA.drawPlan ── */
-      if (f < 870) out.push(drawPlan(c, { labels: false, scale: 0 }), A2.erasePlanNubs(c));
+      if (f < 870) out.push(drawPlan(c, { labels: false, scale: 0 }));
       else {                                                                                  // dead stop: linework + poché only
         const seal = EASE.DRAFT(prog(f, 876, 886));
-        out.push(drawPlan(c, { labels: false, dims: 0, north: 0, scale: 0, stamp: false, cuts: 1 - seal, glazing: 1 - seal, doors: 1 - seal }), A2.erasePlanNubs(c));
+        out.push(drawPlan(c, { labels: false, dims: 0, north: 0, scale: 0, stamp: false, cuts: 1 - seal, glazing: 1 - seal, doors: 1 - seal }));
         const w = prog(f, 888, 896, EASE.SET);
         if (w > 0) out.push(flood(c, 2.4 + (W_END - 2.4) * w));
       }

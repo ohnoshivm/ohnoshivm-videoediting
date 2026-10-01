@@ -8,7 +8,9 @@
 (function () {
   const { registerShot, SPEC, text, path, prog, tween, keys, EASE, C, LW, V, lerp, clamp, camZoom, CAMS, dimString, pathLength,
           lineSegs, polySegs, arcSegs, fmt } = TA;
-  const A1 = TA.act1;
+  const KEYS = ['V0', 'V3', 'V7', 'knotPos', 'tint', 'Zc', 'Zpt', 'scaleAbout', 'grid', 'tick', 'peg', 'pegScale', 'numeral', 'degLabel', 'marker',
+                'NUM', 'CAP', 'ANG0', 'fiveCentre', 'CORNER_VANISH', 'tickTimes', 'ropeTo'];
+  const A1 = TA.need('act1', KEYS, 'S02 (s02.js loads after s01.js)');
   const { V0, V3, V7, knotPos, tint, Zc, Zpt, scaleAbout, grid, tick, peg, pegScale, numeral, degLabel, marker, NUM, CAP, ANG0,
           fiveCentre, CORNER_VANISH, tickTimes, ropeTo } = A1;
 

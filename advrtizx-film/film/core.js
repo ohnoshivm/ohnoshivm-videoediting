@@ -322,7 +322,7 @@ function fontCSS(voice, size, o = {}) {
     content: string, or runs [{t, voice?, size?, fill?, weight?, track?}, ...] for mid-sentence voice switches. */
 function text(content, o = {}) {
   const runs = Array.isArray(content) ? content : [{ t: content }];
-  const base = { voice: o.voice ?? 'measure', size: o.size ?? 18, fill: o.fill ?? C.RED };
+  const base = { voice: o.voice ?? 'measure', size: o.size ?? 18, fill: o.fill ?? C.RED, track: o.track, weight: o.weight };   // runs override
   const last = { ...base, ...runs[runs.length - 1] }, lastTrack = trackOf(VOICE[last.voice], last.size, last) * last.size;
   const anchor = o.anchor ?? 'start';
   const x = (o.x ?? 0) + (anchor === 'end' ? lastTrack : anchor === 'middle' ? lastTrack / 2 : 0); // cancel trailing letter-spacing
@@ -335,7 +335,7 @@ function measure(content, o = {}) {
   const key = JSON.stringify([content, o.voice, o.size, o.track, o.weight]); if (_mcache.has(key)) return _mcache.get(key);
   if (!_measureSvg) { _measureSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); _measureSvg.setAttribute('style', 'position:absolute;left:-9999px;top:0;width:10px;height:10px;visibility:hidden'); document.body.appendChild(_measureSvg); }
   _measureSvg.innerHTML = text(content, { ...o, x: 0, y: 100, anchor: 'start' });
-  const runs = Array.isArray(content) ? content : [{ t: content }], last = { voice: o.voice ?? 'measure', size: o.size ?? 18, ...runs[runs.length - 1] };
+  const runs = Array.isArray(content) ? content : [{ t: content }], last = { voice: o.voice ?? 'measure', size: o.size ?? 18, track: o.track, ...runs[runs.length - 1] };
   const w = _measureSvg.firstChild.getComputedTextLength() - trackOf(VOICE[last.voice], last.size, last) * last.size;
   _mcache.set(key, w); return w;
 }
@@ -364,7 +364,8 @@ function drawMark(o = {}) {
   return out;
 }
 /** dimension string between screen points a→b. offset (px) is to the RIGHT of a→b (a→b left-to-right → below).
-    {label, draw (0..1), size 18, voice 'measure', ink RED, knock WHITE (6px knockout), ext 8, tick 12, gap 6} */
+    {label, draw (0..1), size 18, voice 'measure', ink RED, knock WHITE (6px knockout), ext 8, tick 12, gap 6,
+     rotate: label angle in deg (default: the dim's reading angle, which is +90 (top → bottom) for a vertical; −90 reads bottom → top)} */
 function dimString(a, b, o = {}) {
   const p = o.draw ?? 1; if (p <= 0) return '';
   const ink = o.ink ?? C.RED, dir = V.norm(V.sub(b, a)), n = [-dir[1], dir[0]], off = o.offset ?? 24, ext = o.ext ?? 8, gap = o.gap ?? 6;
@@ -379,7 +380,7 @@ function dimString(a, b, o = {}) {
   if (o.label && p >= 0.5) {
     const size = o.size ?? 18, voice = o.voice ?? 'measure', m = V.lerp(a2, b2, 0.5);
     const w = measure(o.label, { voice, size }) + 12, h = size * 0.7 + 12;
-    out += `<g transform="translate(${fmt(m[0])} ${fmt(m[1])}) rotate(${fmt(ang)})">` + (o.knock !== false ? rect(-w / 2, -h / 2, w, h, o.knock ?? C.WHITE) : '') +
+    out += `<g transform="translate(${fmt(m[0])} ${fmt(m[1])}) rotate(${fmt(o.rotate ?? ang)})">` + (o.knock !== false ? rect(-w / 2, -h / 2, w, h, o.knock ?? C.WHITE) : '') +
       text(o.label, { x: 0, y: size * 0.35, anchor: 'middle', voice, size, fill: ink }) + '</g>';
   }
   return out;
@@ -430,7 +431,8 @@ const PLAN = {
     { id: 'BATH', hinge: [140, 38], leaf: [140, 47], from: [149, 38] },
   ],
   north: { c: [-8, 112], r: 5 },
-  scaleBar: { x: 0, y: 121, m: 100 / 6.8326 },   // 1 m in MU (22'-5" = 100 MU) — placement is ours, not the treatment's
+  scaleBar: { x: 0, y: 118, m: 100 / 6.8326 },   // 1 m in MU (22'-5" = 100 MU). Placement is ours: the stamp's row (y 118), right of the
+                                                  // north arrow. drawPlan hides it whenever its numerals would leave the frame (CAMS.BUYER).
   labels: {
     LIVING:  { at: [52, 55],     measure: ['LIVING', '19\'-0" × 22\'-5"'],  meaning: 'Long dinners' },
     KITCHEN: { at: [111.5, 15],  measure: ['KITCHEN', '6\'-2" × 6\'-9"'],   meaning: 'First coffee' },
@@ -443,6 +445,13 @@ const PLAN = {
   stamp: { at: [227.2, 118], label: '860 SQ FT' },
 };
 const slopeAt = (t) => [75 * t, 100 - 100 * t];
+/** an interior wall's centreline as drawn (butt caps): a free end runs on by half the wall (= a square cap), an end that meets the
+    exterior outline (the A/D top at y 0, the D's west face at x 133.1) stops flush on it, so nothing pokes through the poché. */
+const wallOnOutline = (q) => q[1] === 0 || q[0] === 133.1;
+function wallLine(w) {
+  const hw = PLAN.wallW / 2, ext = (q, nb) => (wallOnOutline(q) ? q : V.add(q, V.mul(V.norm(V.sub(q, nb)), hw)));
+  return w.map((q, i) => (i === 0 ? ext(q, w[1]) : i === w.length - 1 ? ext(q, w[i - 1]) : q));
+}
 /** one label (screen-sized, world-anchored). kind 'measure' → two-line MEASURE 18; 'meaning' → MEANING `size` (34). */
 function planLabel(c, key, kind = 'measure', o = {}) {
   const L = PLAN.labels[key], p = c.apply(L.at), ink = o.ink ?? C.RED;
@@ -476,7 +485,7 @@ function drawPlan(c, o = {}) {
     for (const off of PLAN.glazeOff) { const n = V.mul(SLOPE.normal, off); out += path(lineSegs(V.add(slopeAt(PLAN.glazeT[0]), n), V.add(slopeAt(PLAN.glazeT[1]), n)), { cam: c, stroke: ink, sw: LW.DETAIL, cap: 'butt', draw: gl }); }
     for (const r of PLAN.bay.r) out += path(arcSegs(PLAN.bay.c, r, PLAN.bay.a0, PLAN.bay.a1), { cam: c, stroke: ink, sw: LW.DETAIL, cap: 'butt', draw: gl });
   }
-  if (v('walls') > 0) for (const w of PLAN.walls) out += path(polySegs(w), { cam: c, stroke: ink, sw: PLAN.wallW * c.s, cap: 'square', join: 'miter', draw: v('walls') });
+  if (v('walls') > 0) for (const w of PLAN.walls) out += path(polySegs(wallLine(w)), { cam: c, stroke: ink, sw: PLAN.wallW * c.s, cap: 'butt', join: 'miter', draw: v('walls') });
   if (v('doors') > 0) for (const dr of PLAN.doors) {
     const r = V.dist(dr.hinge, dr.from), a0 = Math.atan2(dr.from[1] - dr.hinge[1], dr.from[0] - dr.hinge[0]) / DEG;
     let a1 = Math.atan2(dr.leaf[1] - dr.hinge[1], dr.leaf[0] - dr.hinge[0]) / DEG; if (a1 - a0 > 180) a1 -= 360; if (a1 - a0 < -180) a1 += 360;
@@ -485,7 +494,9 @@ function drawPlan(c, o = {}) {
   if (v('north') > 0) { const N = PLAN.north, p = c.apply(N.c);
     out += path(circleSegs(N.c, N.r), { cam: c, stroke: ink, sw: LW.HAIR, draw: v('north') });
     if (v('north') >= 1) out += poly([[N.c[0], N.c[1] - 4], [N.c[0] + 3, N.c[1] + 4], [N.c[0] - 3, N.c[1] + 4]].map(c.apply), { fill: ink }) + text('N', { x: p[0], y: p[1] - N.r * c.s - 10, anchor: 'middle', size: 16, fill: ink }); }
-  if (v('scale') > 0) { const S = PLAN.scaleBar, ticks = [0, 1, 2, 5], y = S.y;
+  const sbL = c.apply([PLAN.scaleBar.x, PLAN.scaleBar.y]), sbR = c.apply([PLAN.scaleBar.x + 5 * PLAN.scaleBar.m, PLAN.scaleBar.y]);
+  const sbIn = sbL[1] + 24 <= H - 24 && sbL[1] - 5 >= 0 && sbL[0] >= 0 && sbR[0] + 32 <= W;            // numerals (baseline +24) stay in frame
+  if (v('scale') > 0 && sbIn) { const S = PLAN.scaleBar, ticks = [0, 1, 2, 5], y = S.y;
     out += path(lineSegs([S.x, y], [S.x + 5 * S.m, y]), { cam: c, stroke: ink, sw: LW.HAIR, cap: 'butt', draw: v('scale') });
     if (v('scale') >= 1) ticks.forEach((t) => { const p = c.apply([S.x + t * S.m, y]); out += line([p[0], p[1] - 5], [p[0], p[1] + 5], { stroke: ink, sw: LW.HAIR, cap: 'butt' }) + text(t === 5 ? '5 M' : String(t), { x: p[0], y: p[1] + 24, anchor: t ? 'middle' : 'start', size: 16, fill: ink }); }); }
   if (v('dims') > 0) for (const k in PLAN.dims) { const D = PLAN.dims[k];
@@ -497,6 +508,17 @@ function drawPlan(c, o = {}) {
     else out += planLabel(c, key, lab, { size: o.labelSize, ink });
   }
   return out;
+}
+
+/* cross-shot kits: TA.act1 (s01 + s02 → S03, S04), TA.act2 (s04 + s06 → S07), TA.act3 (s09 → S10).
+   kit(name) returns the shared object (creating it), so producer and consumer hold the same object whatever the load order;
+   a consumer that reads a kit at render time is order-free. need(name, keys, who) is for a consumer that must read the kit while
+   its file loads: it throws a clear error naming what is missing instead of failing later on undefined geometry. */
+function kit(name) { return (TA[name] = TA[name] || {}); }
+function need(name, keys, who) {
+  const k = kit(name), miss = keys.filter((x) => k[x] === undefined);
+  if (miss.length) throw new Error(`${who} needs TA.${name}.{${miss.join(', ')}}: its producer must load first (see the script order in index.html)`);
+  return k;
 }
 
 /* ───────────────────────── 7. ENGINE ───────────────────────── */
@@ -611,6 +633,6 @@ Object.assign(TA, { W, H, FPS, FRAMES, C, LW, GRID, SIZES, TIME, ACTS, SPEC, VOI
   tri345, markA, markD, shiftSegs, parseD, segsToD, arcCenter, pathLength, pointAt, trimSegs, arcSegs, circleSegs, polySegs, lineSegs, slopeAt,
   cam, camLerp, camTween, camZoom, fold, esc, attrs, uid, path, line, poly, circle, rect, g, clipTo, fmt,
   fontCSS, text, measure, rise, exit, drawMark, dimString, draftGrid, slopeOrder, slopeWipe, splitFlap, drawPlan, planLabel,
-  registerShot, seek, activeShots, boot, placeholder, shots: SHOTS });
+  registerShot, seek, activeShots, boot, placeholder, shots: SHOTS, kit, need, wallLine });
 window.seek = seek; window.registerShot = registerShot;
 })();

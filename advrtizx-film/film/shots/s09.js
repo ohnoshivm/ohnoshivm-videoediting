@@ -7,7 +7,7 @@
    Shares `TA.act3.card10` with S10 (S09 loads first; S10's f1170 must equal S09's last frame). */
 (function () {
   const { registerShot, SPEC, text, prog, tween, EASE, C, LW, rect, g, uid, fmt } = TA;
-  const A3 = (TA.act3 = TA.act3 || {});
+  const A3 = TA.kit('act3');
 
   const OX = 656, OW = 608, H = 1080, CX = OW / 2, INK = C.RED;
   const Y_END = 10800, T0 = 1020, T1 = 1086;

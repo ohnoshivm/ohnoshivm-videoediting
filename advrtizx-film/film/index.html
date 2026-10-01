@@ -28,6 +28,12 @@
 <div id="stage"><svg id="guides" viewBox="0 0 1920 1080"></svg></div>
 <div id="ui"><button id="play">PLAY</button><input id="scrub" type="range" min="0" max="1799" step="1" value="0"><span id="readout"></span></div>
 
+<!-- Script order is part of the film. Shots register in this order (later files draw on top when ranges overlap), and three
+     shared kits pass between files (core: TA.kit / TA.need):
+       TA.act1  s01 + s02 → s03, s04    (s02 reads s01's kit while it loads, so s01 must come before s02)
+       TA.act2  s04 + s06 → s07         (measureLines, label layout and the split-flap renderer)
+       TA.act3  s09       → s10         (card10, the S09/S10 stop card)
+     Consumers that only read a kit at render time do not care about order; keep the numeric order anyway. -->
 <script src="core.js"></script>
 <script src="shots/s01.js"></script>
 <script src="shots/s02.js"></script>
