@@ -58,6 +58,7 @@ export default function act5(ctx) {
         b.group.position.set(ox, 0, 0); b.group.scale.setScalar(fit * Math.hypot(ox, DR) / DR);
         st.rowGroups[rr].add(b.group);
       } else { ctx.root.add(b.group); ctx.gate(b.group); }
+      b.group.add(N.mesh);   // integrator: the name was built and animated but never parented, so no panel ever showed it
       const p = { b, N, fovV, cam: ctx.makeCam(), c: k % st.cols, r: Math.floor(k / st.cols), planeH: N.texH * (N.kk || kk) };
       st.panels.push(p);
     }
