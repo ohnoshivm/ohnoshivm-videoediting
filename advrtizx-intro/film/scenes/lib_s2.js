@@ -339,7 +339,7 @@ export const CITIES = {
     const deck = (yc, d) => ({ x: mx, z: mz, y: yc - d / 2, w: d, d, h: 0.2, crown: 'S', riseH: mast.h, wave: 0, hero: 'deck', layer: 0 });
     T = clearOf(T, [{ x: mx, z: mz, w: 80, d: 90 }]); T = keepFrac(rng, T, thin(o));
     T.push(mast, deck(mt * 0.58, 50), deck(mt * 0.79, 34));
-    return { towers: T, prisms: [], hazes: [[1, 1], [0.88, 0.78], [0.72, 0.56], [0.58, 0.42]], water: [], cam, name: { z: -760, y: S(0.50, 20, -760) }, label: { y: 1000 } };
+    return { towers: T, prisms: [], hazes: [[1, 1], [0.88, 0.78], [0.72, 0.56], [0.58, 0.42]], water: [], cam, name: { z: -760, y: S(0.36, 20, -760) }, label: { y: 1000 } };   // integrator: baseline raised, the name was buried in the towers
   },
 };
 

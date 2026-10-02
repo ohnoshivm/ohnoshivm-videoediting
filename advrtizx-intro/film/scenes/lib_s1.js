@@ -163,7 +163,7 @@ export function rail2(P0, o = {}) {
   const tYb = track([[127, HERO.centre], [240, HERO.centre]]);
   const tDive = track([[240, -40], [247, -230, 'inOutSine'], [256, 150, 'inOutSine']]);   // integrator: pitch down mid-dive so the ground/plaza rushes up (ground reference); same values at 240 and 256
   const tY = (t) => (t < 240 ? tYb(t) : yy(t) + tDive(t));
-  const fovT = track([[127, P0.fov], [240, P0.fov], [256, 88, 'inQuad']]);
+  const fovT = track([[127, P0.fov], [240, P0.fov], [256, 74, 'inQuad']]);   // integrator: 88 deg arrival was a cluttered fan of leaning towers
   return { az0, r0, y0, ndc0, at(t) {
     const pos = cyl(az(t), rr(t), yy(t)), fov = fovT(t);
     return { pos, look: aimAt(pos, [0, tY(t), 0], nX(t), nY(t), fov), fov };

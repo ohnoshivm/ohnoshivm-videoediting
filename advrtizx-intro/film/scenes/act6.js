@@ -47,7 +47,8 @@ export default function act6(ctx) {
   const poseAt = (t) => {
     const u = t - U0, ur = clamp((u - (RISE0 - U0)) / (END + 1 - RISE0));
     const rise = EASE.inCubic(ur), tilt = EASE.inOutSine(ur);
-    const y = Y0 + 420 * rise, pitch = lerp(P.pitch0, -2.5, tilt) * DEG, yaw = yawT(u) * DEG, fov = lerp(FOV0, 30, tilt);
+    const wd = EASE.inCubic(clamp((u - (END - 9 - U0)) / 10));   // integrator: whip-tilt down into the cut (f1142-1151), matched by Act VII's opening settle
+    const y = Y0 + 420 * rise, pitch = (lerp(P.pitch0, -2.5, tilt) - 40 * wd) * DEG, yaw = yawT(u) * DEG, fov = lerp(FOV0, 30, tilt);
     const pos = [camX(u), y, 0];
     const look = [pos[0] + Math.sin(yaw) * Math.cos(pitch) * 1000, y + Math.sin(pitch) * 1000, -Math.cos(yaw) * Math.cos(pitch) * 1000];
     return { pos, look, fov };
@@ -192,19 +193,19 @@ export default function act6(ctx) {
   /* ───────────── shake ───────────── */
   const impacts = [];
   // integrator: amplitudes/frequencies scaled for the 24-30 deg long lens; at the old values one 180-deg shutter spanned a ~5% image swing,
-  // which K<=6 sub-frames rendered as discrete ghost copies on every slam. Kicks start 0.13 f early (just before the 90-deg shutter opens)
-  // so every sub-frame of the hit frame is kicked: no half-kicked double image
-  SOLD.forEach((f, i) => impacts.push({ f: f - 0.13, amp: i === 0 ? 0.85 : 0.62 - 0.01 * i, decay: 3.2, freq: 0.3, seed: i }));
-  STORM.forEach((f, i) => impacts.push({ f: f - 0.13, amp: 0.45, decay: 2.2, freq: 0.36, seed: 20 + i }));
-  for (let f = U0 + 8; f < RISE0; f += 8) if (!SOLD.includes(f)) impacts.push({ f: f - 0.13, amp: 0.14, decay: 2.0, freq: 0.4, seed: 40 + (f - U0) / 8 });
+  // which K<=6 sub-frames rendered as discrete ghost copies on every slam.
+  SOLD.forEach((f, i) => impacts.push({ f, amp: i === 0 ? 0.85 : 0.62 - 0.01 * i, decay: 3.2, freq: 0.3, seed: i }));
+  STORM.forEach((f, i) => impacts.push({ f, amp: 0.45, decay: 2.2, freq: 0.36, seed: 20 + i }));
+  for (let f = U0 + 8; f < RISE0; f += 8) if (!SOLD.includes(f)) impacts.push({ f, amp: 0.14, decay: 2.0, freq: 0.4, seed: 40 + (f - U0) / 8 });
   const LAND = SOLD.concat(STORM), HOLD = 2.5, GLIDE = 9;
 
   /* ───────────── scene ───────────── */
   const sunV = (az, el) => [Math.sin(az * DEG) * Math.cos(el * DEG), Math.sin(el * DEG), Math.cos(az * DEG) * Math.cos(el * DEG)];
   return {
     id: 'act6', start: U0, end: END,
-    shutter() { return 0.25; },   // integrator: 90-degree shutter on the long-lens truck + slams: halves sub-frame spacing at K<=6 (staccato, no ghost copies)
+    shutter(t) { return t >= END - 9.5 ? 0.5 : 0.25; },   // 180 deg for the whip-tilt into Act VII   // integrator: 90-degree shutter on the long-lens truck + slams: halves sub-frame spacing at K<=6 (staccato, no ghost copies)
     samples(t) {
+      if (t >= END - 9.5) return 6;
       for (const L of LAND) if (t > L - 5.3 && t < L + (L >= STORM0 ? HOLD + GLIDE * 0.75 : 3.2)) return 6;   // integrator: cover the storm push-back glide (ghost steps at K=2)
       return t < 1040 ? 4 : t < RISE0 ? 2 : 3;
     },

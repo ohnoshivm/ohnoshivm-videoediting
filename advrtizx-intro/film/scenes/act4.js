@@ -18,7 +18,7 @@ const NAMES = {
   hongkong:  { text: '香港',       lang: 'zh',         stretch: 100, wFrac: 0.50, hFrac: 0.42, latin: 'HONG KONG' },
   tokyo:     { text: '東京',       lang: 'ja',         stretch: 100, wFrac: 0.50, hFrac: 0.42, latin: 'TOKYO' },
 };
-const SHAKE_AMP = [1.5, 1.5, 1.6, 1.7, 1.9, 2.0, 2.1, 2.4, 2.6];     // impact strength grows with the pace
+const SHAKE_AMP = [1.0, 1.0, 1.05, 1.1, 1.2, 1.25, 1.3, 1.4, 1.5];   // integrator: lowered (with freq) so K<=6 motion blur does not fan into copies     // impact strength grows with the pace
 
 export default function act4(ctx) {
   const { kits, util, camera, THREE } = ctx;
@@ -91,10 +91,10 @@ export default function act4(ctx) {
   // ───────────── impacts: shake events + rings ─────────────
   const events = [], ringEv = [];
   cities.forEach((c) => {
-    events.push({ f: c.hit, amp: SHAKE_AMP[c.i], decay: 3.4, freq: 0.55, seed: c.i * 7 });
+    events.push({ f: c.hit, amp: SHAKE_AMP[c.i], decay: 3.4, freq: 0.32, seed: c.i * 7 });
     ringEv.push({ f: c.hit, x: c.X, z: -140, k: 1.0 });
     const waves = [...new Set(c.b.towers.map((T_) => T_.wave || 0))].filter((w) => w > 0);
-    waves.forEach((w) => { events.push({ f: c.hit + w, amp: SHAKE_AMP[c.i] * 0.34, decay: 2.6, freq: 0.7, seed: c.i * 7 + w }); ringEv.push({ f: c.hit + w, x: c.X, z: -140, k: 0.55 }); });
+    waves.forEach((w) => { events.push({ f: c.hit + w, amp: SHAKE_AMP[c.i] * 0.34, decay: 2.6, freq: 0.4, seed: c.i * 7 + w }); ringEv.push({ f: c.hit + w, x: c.X, z: -140, k: 0.55 }); });
   });
 
   // ───────────── type: name rise ─────────────
@@ -109,7 +109,7 @@ export default function act4(ctx) {
     let k = 1;
     for (const c of cities) {
       if (f >= c.w0 - 0.6 && f <= c.hit) { const sp = Math.max(camera.whipSpeed(f - 0.25, c.w0, c.hit), camera.whipSpeed(f, c.w0, c.hit), camera.whipSpeed(f + 0.25, c.w0, c.hit)); if (sp > 0.05) k = Math.max(k, 3 + Math.round(sp * 3)); }
-      if (f >= c.hit - 1.5 && f <= c.hit + 2.5) k = Math.max(k, 4);
+      if (f >= c.hit - 1.5 && f <= c.hit + 2.5) k = Math.max(k, 6);   // integrator: 4 -> 6 (slam + name rise land here)
     }
     const c0 = cities[0]; if (f >= c0.hit && f < c0.hit + 5) k = Math.max(k, 6);
     return Math.min(k, 6);
@@ -118,6 +118,7 @@ export default function act4(ctx) {
   return {
     id: 'act4', start: START, end: END,
     samples: K,
+    shutter(f) { for (const c of cities) if (f >= c.hit - 0.6 && f <= c.hit + 2.5) return 0.25; return 0.5; },   // integrator: 90 deg on the downbeat frames (no stepped copies), 180 deg whips
     update(t) {
       const env = ctx.env, cam = ctx.cam;
       kits.world.preset(env, 'city');

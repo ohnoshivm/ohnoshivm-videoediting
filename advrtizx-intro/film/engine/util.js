@@ -147,7 +147,9 @@ export function fbm1(x, seed = 0) { return (noise1(x, seed) * 0.6 + noise1(x * 2
 export function shake(t, events, { posScale = 0, rollScale = 0.35 } = {}) {
   let yaw = 0, pitch = 0, roll = 0, x = 0, y = 0, z = 0;
   for (let i = 0; i < events.length; i++) {
-    const e = events[i], dt = t - e.f;
+    // the envelope opens 0.26 f before the event so the whole 180-degree shutter of the hit frame is kicked (otherwise half the
+    // sub-frames are unkicked and motion blur shows a double image on every impact)
+    const e = events[i], dt = t - e.f + 0.26;
     if (dt < 0) continue;
     const env = Math.exp(-dt / (e.decay ?? 3)) * (dt < 0.001 ? 1 : 1);
     if (env < 1e-3) continue;
