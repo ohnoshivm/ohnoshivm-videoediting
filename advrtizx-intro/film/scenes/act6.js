@@ -8,7 +8,7 @@ import { Board, boardAspect, frameOf, project, unproject, rayAt, makeFaceTexture
 export default function act6(ctx) {
   const { kits, util } = ctx;
   // tunables (window.__A6 may override them in dev renders)
-  const P = Object.assign({ d0: 700, fov: 24, y0: 90, pitch0: 5.5, fogD: 0.0002, fogH: 220, fogAir: 0.0003, sun: 1.9, shadowSize: 2048, shadowOn: 1, ang0: 3.2, ang1: 5.5, wBase: 12, wPer: 0.022, lodNear: 1, lodMid: 2 }, (typeof window !== 'undefined' && window.__A6) || {});
+  const P = Object.assign({ d0: 700, fov: 24, y0: 90, pitch0: 5.5, fogD: 0.0002, fogH: 220, fogAir: 0.0003, sun: 1.9, shadowSize: 1024, shadowOn: 1, ang0: 3.2, ang1: 5.5, wBase: 12, wPer: 0.022, lodNear: 1, lodMid: 2 }, (typeof window !== 'undefined' && window.__A6) || {});
   const { TowerSet } = kits.towers;
   const { EASE, track, clamp, lerp, shake, rumble, addShake, prog, smoothstep, makeRng, hash01 } = util;
 
@@ -56,7 +56,7 @@ export default function act6(ctx) {
   const FRAMES = []; for (let f = U0 - 1; f <= END + 2; f++) FRAMES[f] = frameAt(f);
 
   /* ───────────── world rows and board placement ───────────── */
-  const rows = makeRows(P.d0, 7600);
+  const rows = makeRows(P.d0, 5000);
   const placeBoard = (L, { Z, sx, sy, H: Hm, hf }, faceAspect) => {
     const fr = frameAt(L), ray = rayAt(fr, sx, sy), zWant = fr.pos[2] + ray[2] * Z;
     let best = 0, bd = 1e9; for (let k = 0; k < rows.length - 1; k++) { const dz = Math.abs(alleyZ(rows, k) - zWant); if (dz < bd) { bd = dz; best = k; } }
@@ -200,8 +200,8 @@ export default function act6(ctx) {
   return {
     id: 'act6', start: U0, end: END,
     samples(t) {
-      for (const L of LAND) if (t > L - 5.3 && t < L + 3.2) return 16;
-      return 9;
+      for (const L of LAND) if (t > L - 5.3 && t < L + 3.2) return 6;
+      return t < 1040 ? 4 : t < RISE0 ? 2 : 3;
     },
     update(t) {
       const env = ctx.env, cam = ctx.cam, st = poseAt(t);
@@ -212,7 +212,7 @@ export default function act6(ctx) {
       env.ground = { albedo: [0.5, 0, 0] };
       env.post = { grain: 1.0, vignette: 0.42 };
       // key-light shadow volume follows the camera; the centre is snapped to the shadow-map texel grid so edges never crawl
-      { const R = 880, size = P.shadowSize, tex = (2 * R) / size, d = sunV(-38, 34);
+      { const R = 700, size = P.shadowSize, tex = (2 * R) / size, d = sunV(-38, 34);
         const l = Math.hypot(d[0], d[2]), xa = [d[2] / l, 0, -d[0] / l], ya = [-d[1] * d[0] / l, l, -d[1] * d[2] / l];      // light-space axes (as engine lookAt)
         const c = [st.pos[0] + 380, 140, -720];
         const px = c[0] * xa[0] + c[1] * xa[1] + c[2] * xa[2], py = c[0] * ya[0] + c[1] * ya[1] + c[2] * ya[2];

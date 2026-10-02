@@ -35,30 +35,21 @@ export default function act5(ctx) {
     for (let k = 0; k < st.n; k++) {
       const [text, lang, ai] = POOL[(pi++ + (st.n === 64 ? 0 : 0)) % POOL.length];
       const arch = ARCH[ai];
-      const b = S2.buildCity(kits, st.n >= 16 ? 'panel' : arch, { hit: st.hit + 6, seed: arch + ':' + text + ':' + st.n + ':' + k, lod, shadow: false, thinF: st.n >= 8 ? 0.7 : 1, durRange: [4, 6], waveScale: 0.25, hScale: last ? 0.3 : 1 });
+      const b = S2.buildCity(kits, st.n >= 16 ? 'panel' : arch, { hit: st.hit + 6, seed: arch + ':' + text + ':' + st.n + ':' + k, lod, shadow: false, thinF: st.n >= 8 ? 0.7 : 1, durRange: [4, 6], waveScale: 0.25, hScale: last ? 0.3 : 1, extra: last ? (ts) => { const rng = ctx.rng('uni:' + k), B = [], C = [];
+        for (const t of ts) { const tb = { ...t, w: t.w + 1.4, d: t.d + 1.4, h: t.h / 0.3, layer: 0, wave: 0 }; tb.riseH = tb.h * 0.7; B.push(tb);
+          if (rng() < 0.45) C.push({ ...t, x: t.x + (rng() - 0.5) * 40, z: t.z + (rng() - 0.5) * 40, w: t.w * 0.75, d: t.d * 0.75, h: t.h / 0.3 * 0.55, riseH: 0, layer: 0 }); }
+        S2.timeTowers(B, { hit: UNI, rng, dropDur: 4, dur: [12, 12], drop: [90, 170], tall: 1e9 });
+        const nC = 12; C.forEach((t, i) => { const j = i % nC, land = j < 4 ? TEN + 2 + j * 4 : TEN + 16 + (j - 4) * 2; t.land = land; t.dur = 5; t.t0 = land - 5; t.drop = 70; t.dropDur = 3; });
+        return [...B, ...C]; } : null });
       const g = b.def.cam, nz = b.def.name.z, tt = (g.pos[2] - nz) / (g.pos[2] - g.look[2]), nx = g.pos[0] + (g.look[0] - g.pos[0]) * tt, dist = Math.hypot(g.pos[2] - nz, 0);
       const fovV = g.fov, vh = 2 * dist * Math.tan(fovV * Math.PI / 360), vw = vh * aspect;
       const N = S2.makeName(kits, text, { lang: lang === 'latin' ? undefined : lang, stretch: lang === 'latin' ? 75 : 100, track: -0.035, fog: 0.35, size: nameSize });
-      const wF = lang === 'latin' ? 0.84 : 0.7, kk = Math.min(wF * vw / N.inkW, 0.42 * vh / N.inkH);
+      const wF = lang === 'latin' ? 0.84 : 0.7, kk = Math.min(wF * vw / N.inkW, (st.n >= 16 ? 0.30 : 0.42) * vh / N.inkH);
       N.mesh.scale.setScalar(kk / N.k0); N.yb = b.def.name.y; N.yc = N.yb + (N.baseT - N.texH / 2) * kk;
       N.mistU.y0.value = N.yb - 0.1 * N.inkH * kk; N.mistU.y1.value = N.yb + 0.62 * N.inkH * kk; N.mistU.lo.value = 0.12;
       N.mesh.position.set(nx, N.yc, nz); N.mesh.rotation.y = Math.atan2(g.pos[0] - nx, g.pos[2] - nz);
       b.group.add(N.mesh); ctx.root.add(b.group); ctx.gate(b.group);
       const p = { b, N, fovV, cam: ctx.makeCam(), c: k % st.cols, r: Math.floor(k / st.cols), planeH: N.texH * kk };
-      if (last) {   // the unison: every tower is replaced by a taller one that rises together; the tension build adds density on 16ths then 32nds
-        const rng = ctx.rng('uni:' + k), B = [], C = [];
-        for (const t of b.towers) {
-          const tb = { ...t, w: t.w + 1.4, d: t.d + 1.4, h: t.h / 0.3, layer: 0, wave: 0 }; tb.riseH = tb.h * 0.7;
-          if (tb.tiers) tb.tiers = t.tiers; B.push(tb);
-          if (rng() < 0.45) C.push({ ...t, x: t.x + (rng() - 0.5) * 40, z: t.z + (rng() - 0.5) * 40, w: t.w * 0.75, d: t.d * 0.75, h: t.h / 0.3 * 0.55, riseH: 0, layer: 0 });
-        }
-        S2.timeTowers(B, { hit: UNI, rng, dropDur: 4, dur: [12, 12], drop: [90, 170], tall: 1e9 });
-        const nC = 12; C.forEach((t, i) => { const j = i % nC, land = j < 4 ? TEN + 2 + j * 4 : TEN + 16 + (j - 4) * 2; t.land = land; t.dur = 5; t.t0 = land - 5; t.drop = 70; t.dropDur = 3; });
-        const set = new kits.towers.TowerSet({ lod: 2, shadow: false, name: 'uni' + k });
-        for (const t of B) S2.emitTower(set, t, kits.logo.crownSize);
-        for (const t of C) S2.emitTower(set, t, kits.logo.crownSize);
-        set.build(); S2.patchHaze(set, 1, 1); b.group.add(set.group); p.uni = set;
-      }
       st.panels.push(p);
     }
   }
