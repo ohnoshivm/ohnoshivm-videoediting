@@ -274,7 +274,7 @@ export const CITIES = {
       T.push({ x: S0[0] + ux * s - uz * side, z: S0[1] + uz * s + ux * side, w, d: w * rng.range(1.6, 2.1), h, rot: rotA, crown: pick(), crownScale: 0.95, wave: s > 1000 ? 8 : s > 560 ? 4 : 0, pitch: 3.7, layer: s > 1000 ? 2 : s > 520 ? 1 : 0 });
     }
     const half = 52, wq = 4400, nx = -uz, nz = ux;
-    const water = [-1, 1].map((sgn) => ({ kind: 'quad', cx: S0[0] + ux * 700 + nx * sgn * (half + wq / 2), cz: S0[1] + uz * 700 + nz * sgn * (half + wq / 2), w: wq, l: 5400, rot: rotA, tint: sgn < 0 ? [0.16, 0, 0] : [0.62, 0, 0] }));
+    const water = [-1, 1].map((sgn) => ({ kind: 'quad', cx: S0[0] + ux * 700 + nx * sgn * (half + wq / 2), cz: S0[1] + uz * 700 + nz * sgn * (half + wq / 2), w: wq, l: 5400, rot: rotA, tint: sgn < 0 ? [0.05, 0, 0] : [1.0, 0, 0] }));
     return { towers: keepFrac(rng, T, thin(o)), prisms: [], hazes: [[1, 1], [0.86, 0.76], [0.68, 0.52]], water, cam, name: { z: -1180, y: S(0.5, -150, -1180) }, label: { y: 1000 } };
   },
 
@@ -288,7 +288,7 @@ export const CITIES = {
     T.push(...B({ z: -520, s: [0.58, 0.40], pitch: 100, stagger: 0, w: [38, 52], wave: 8, cs: 0.84, layer: 1, x0: 200, x1: 1000 }));
     T.push(...B({ z: -700, s: [0.50, 0.34], pitch: 116, stagger: 50, w: [42, 58], wave: 16, cs: 0.8, layer: 2, x0: 200, x1: 1040 }));
     T.push(...B({ z: -390, s: [0.68, 0.56], pitch: 92, stagger: 20, w: [34, 46], wave: 4, cs: 0.88, layer: 1, x0: 380, x1: 980 }));
-    const sailPrisms = sails.map(([x, w, mir, zz]) => ({ geom: (k) => sailGeom(k, w, 14, mir ? -34 : 34, mir), spec: { x: x + (mir ? w / 2 : -w / 2 + 0) + (mir ? 0 : w / 2), y: 7, z: 40 + zz, depth: 14, ease: 'slam', drop: 130, dropDur: 4, layer: 0 } }));
+    const sailPrisms = sails.map(([x, w, mir, zz]) => ({ geom: (k) => sailGeom(k, w, 14, mir ? -34 : 34, mir), spec: { x, y: 7, z: 40 + zz, depth: 14, ease: 'slam', drop: 130, dropDur: 4, layer: 0 } }));
     return { towers: keepFrac(rng, T, thin(o)), prisms: [...sailPrisms, { geom: (k) => viaduct(k, 880, 150, 118, 5), spec: { x: 270, y: 0, z: -250, depth: 32, riseH: 150, ease: 'slam', hero: 'bridge', drop: 0, dropDur: 4, layer: 1 } }],
       hazes: [[1, 1], [0.86, 0.76], [0.66, 0.5]],
       water: [{ kind: 'rect', x0: -1500, x1: 1500, z0: -320, z1: 40, tint: [0.30, 0, 0] }, { kind: 'rect', x0: -1500, x1: -430, z0: 40, z1: 1400, tint: [0.30, 0, 0] }, { kind: 'rect', x0: -430, x1: 1500, z0: 140, z1: 1400, tint: [0.30, 0, 0] }],

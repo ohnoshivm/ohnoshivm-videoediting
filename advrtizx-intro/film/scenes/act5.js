@@ -35,7 +35,7 @@ export default function act5(ctx) {
     for (let k = 0; k < st.n; k++) {
       const [text, lang, ai] = POOL[(pi++ + (st.n === 64 ? 0 : 0)) % POOL.length];
       const arch = ARCH[ai];
-      const b = S2.buildCity(kits, arch, { hit: st.hit + 6, seed: arch + ':' + text + ':' + st.n + ':' + k, lod, shadow: false, thinF: st.n >= 32 ? 0.55 : st.n >= 8 ? 0.75 : 1, durRange: [4, 6], waveScale: 0.25, hScale: last ? 0.45 : 1 });
+      const b = S2.buildCity(kits, st.n >= 16 ? 'panel' : arch, { hit: st.hit + 6, seed: arch + ':' + text + ':' + st.n + ':' + k, lod, shadow: false, thinF: st.n >= 8 ? 0.7 : 1, durRange: [4, 6], waveScale: 0.25, hScale: last ? 0.3 : 1 });
       const g = b.def.cam, nz = b.def.name.z, tt = (g.pos[2] - nz) / (g.pos[2] - g.look[2]), nx = g.pos[0] + (g.look[0] - g.pos[0]) * tt, dist = Math.hypot(g.pos[2] - nz, 0);
       const fovV = g.fov, vh = 2 * dist * Math.tan(fovV * Math.PI / 360), vw = vh * aspect;
       const N = S2.makeName(kits, text, { lang: lang === 'latin' ? undefined : lang, stretch: lang === 'latin' ? 75 : 100, track: -0.035, fog: 0.35, size: nameSize });
@@ -48,11 +48,11 @@ export default function act5(ctx) {
       if (last) {   // the unison: every tower is replaced by a taller one that rises together; the tension build adds density on 16ths then 32nds
         const rng = ctx.rng('uni:' + k), B = [], C = [];
         for (const t of b.towers) {
-          const tb = { ...t, w: t.w + 1.4, d: t.d + 1.4, h: t.h / 0.45 * 1.15, layer: 0, wave: 0 };
+          const tb = { ...t, w: t.w + 1.4, d: t.d + 1.4, h: t.h / 0.3, layer: 0, wave: 0 }; tb.riseH = tb.h * 0.7;
           if (tb.tiers) tb.tiers = t.tiers; B.push(tb);
-          if (rng() < 0.7) C.push({ ...t, x: t.x + (rng() - 0.5) * t.w * 2.2, z: t.z + (rng() - 0.5) * 60, w: t.w * 0.7, d: t.d * 0.7, h: t.h / 0.45 * 0.55, layer: 0 });
+          if (rng() < 0.45) C.push({ ...t, x: t.x + (rng() - 0.5) * 40, z: t.z + (rng() - 0.5) * 40, w: t.w * 0.75, d: t.d * 0.75, h: t.h / 0.3 * 0.55, riseH: 0, layer: 0 });
         }
-        S2.timeTowers(B, { hit: UNI, rng, dropDur: 4, dur: [7, 8], drop: [90, 170] });
+        S2.timeTowers(B, { hit: UNI, rng, dropDur: 4, dur: [12, 12], drop: [90, 170], tall: 1e9 });
         const nC = 12; C.forEach((t, i) => { const j = i % nC, land = j < 4 ? TEN + 2 + j * 4 : TEN + 16 + (j - 4) * 2; t.land = land; t.dur = 5; t.t0 = land - 5; t.drop = 70; t.dropDur = 3; });
         const set = new kits.towers.TowerSet({ lod: 2, shadow: false, name: 'uni' + k });
         for (const t of B) S2.emitTower(set, t, kits.logo.crownSize);
@@ -76,12 +76,12 @@ export default function act5(ctx) {
 
   return {
     id: 'act5', start: START, end: END,
-    samples(f) { let k = 3; for (const st of stages) if (f >= st.hit - 0.5 && f <= st.hit + 8) k = Math.max(k, 9); if (f >= UNI - 9 && f <= UNI + 6) k = 10; if (f >= TEN) k = Math.max(k, 6); return k; },
+    samples(f) { let k = 1; for (const st of stages) if (f >= st.hit - 0.5 && f <= st.hit + 6) k = Math.max(k, 4); if (f >= UNI - 12 && f <= UNI + 4) k = 5; if (f >= TEN) k = Math.max(k, 3); return k; },
     update(t) {
       const env = ctx.env;
       kits.world.preset(env, 'city');
-      env.sun = { az: -46, el: 33, intensity: 1.62, dir: null };
-      env.ambient = { up: 0.60, down: 0.38, bounce: 0 };
+      env.sun = { az: -52, el: 29, intensity: 1.75, dir: null };
+      env.ambient = { up: 0.46, down: 0.28, bounce: 0 };
       env.fog = { density: 0.00012, height: 450, floorY: 0, air: 0.00001 };
       env.ground = { albedo: [0.47, 0, 0] };
       env.shadow = { on: false, center: [0, 60, -200], radius: 700, size: 1024, bias: 0.0006, normalBias: 1.0 };
@@ -102,7 +102,8 @@ export default function act5(ctx) {
       }
       ctx.views = views;
     },
-    overlay(t, g) {
+    overlay(t0, g) {
+      const t = Math.round(t0);
       const st = stageAt(t), Z = zoomAt(t), dt = Math.max(0, t - st.hit);
       const gw = gutW[st.si] * Z * clamp(dt / 2 + 0.5, 0, 1);
       g.fillStyle = '#fff';

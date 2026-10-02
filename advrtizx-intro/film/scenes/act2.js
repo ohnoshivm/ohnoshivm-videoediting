@@ -38,10 +38,7 @@ export default async function act2(ctx) {
 
   return {
     id: 'act2', start: 128, end: 255,
-    samples(f) {
-      if (f < 136) return 12; if (f < 160) return 5; if (f < 168) return 12; if (f < 200) return 5;
-      if (f < 224) return 8 + Math.round((f - 200) / 24 * 4); if (f < 232) return 16; if (f < 240) return 8; return 16;
-    },
+    samples(f) { if (f < 136) return 6; if (f < 200) return 3; return 6; },
     update(t) {
       const env = ctx.env, cam = ctx.cam;
       base.update(127);                                   // Act I's final-state hero/ground/fog/camera, then override what Act II animates

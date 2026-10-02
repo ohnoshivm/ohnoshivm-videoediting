@@ -23,10 +23,7 @@ export default async function act3(ctx) {
     ...L.LIGHT.map((f, i) => ({ f, amp: 0.8, decay: 2.4, seed: 10 + i }))];
   return {
     id: 'act3', start: 256, end: 383,
-    samples(f) {
-      if (f >= 376) return 32; if (f < 263) return 16; if (f < 292) return 14;
-      return L.LIGHT.some((l) => f >= l - 1 && f <= l + 2) ? 12 : 8;
-    },
+    samples(f) { if (f >= 376) return 12; return (f < 290 || L.LIGHT.some((l) => f >= l - 1 && f <= l + 1)) ? 6 : 4; },
     update(t) {
       const env = ctx.env, cam = ctx.cam;
       base.update(127);

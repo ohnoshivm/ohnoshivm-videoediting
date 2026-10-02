@@ -446,7 +446,7 @@ export function applyClimax(ctx, t) {
   env.ground = { albedo: [0.50, 0, 0] };
   env.post = { grain: 1.0, vignette: 0.45 };
   const sr = lerp(950, 2400, smooth01(0.0, 0.65, p));
-  env.shadow = { on: !out, center: [lerp(-600, 0, p), 150, lerp(120, -200, p)], radius: sr, size: 2048, bias: 0.0005, normalBias: Math.max(1.2, sr * 0.0011) };
+  env.shadow = { on: !out && p < 0.5, center: [lerp(-600, 0, p), 150, lerp(120, -200, p)], radius: sr, size: 2048, bias: 0.0005, normalBias: Math.max(1.2, sr * 0.0011) };
   const rings = [];
   const U_ = ADU;
   U_.uHit.value.set(F.HITA, F.HITD);

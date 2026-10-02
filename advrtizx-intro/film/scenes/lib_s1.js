@@ -241,7 +241,7 @@ export function dubaiSpecs(rng, rail) {
     tiers.forEach((tr, i) => { const last = i === tiers.length - 1, hh = h * tr.f;
       specs.push({ x, z, w: w * tr.wf, d: d * tr.wf, h: hh, y, crown: last ? crown : null, crownScale: cs, crownDepth: d * tr.wf * 1.1, riseH: h, t0: L - dur, dur, land: L, drop: last ? drop : 0, dropDur: 4, ease: 'slam', pitch: rng.range(3.8, 4.8) }); y += hh; });
   };
-  const R = [[230, 10, 120, 260, 0], [480, 20, 180, 340, 0], [760, 28, 200, 380, 0], [1060, 36, 200, 400, 0], [1400, 46, 180, 400, 4], [1800, 54, 160, 380, 4], [2300, 60, 150, 360, 4]];
+  const R = [[230, 10, 120, 260, 0], [480, 20, 180, 340, 0], [760, 28, 200, 380, 0], [1060, 36, 200, 400, 0], [1400, 46, 180, 400, 4], [1800, 36, 160, 380, 4], [2300, 28, 150, 360, 4]];
   R.forEach(([r, n, h0, h1, kk], k) => { let placed = 0, tries = 0;
     while (placed < n && tries++ < n * 40) { const a = rng.range(0, Math.PI * 2), x = r * Math.sin(a) * rng.range(0.92, 1.08), z = -r * Math.cos(a) * rng.range(0.92, 1.08) + 40;
       if (!free(x, z, 40)) continue; mk(x, z, rng.range(h0, h1), HEAVY[Math.min(k, 4)], false); placed++; } });

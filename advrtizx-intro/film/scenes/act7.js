@@ -9,7 +9,7 @@ export default function act7(ctx) {
   const world = getWorld(ctx);
   return {
     id: 'act7', start: F.A7, end: F.HITA - 1,
-    samples(t) { if (t < F.OUT) return Math.min(6, Math.round(2 + 4 * pullSpeed(t))); return 1; },
+    samples(t) { if (t < F.OUT) return Math.min(3, Math.round(1 + 2 * pullSpeed(t))); return 1; },
     update(t) {
       if (world.group.parent !== ctx.root) ctx.root.add(world.group);
       applyClimax(ctx, t);

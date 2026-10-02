@@ -106,13 +106,13 @@ export default function act4(ctx) {
 
   // ───────────── blur budget ─────────────
   function K(f) {
-    let k = 3;
+    let k = 1;
     for (const c of cities) {
-      if (f >= c.w0 - 0.6 && f <= c.hit) { const sp = Math.max(camera.whipSpeed(f - 0.25, c.w0, c.hit), camera.whipSpeed(f, c.w0, c.hit), camera.whipSpeed(f + 0.25, c.w0, c.hit)); k = Math.max(k, 4 + Math.round(sp * 28)); }
-      if (f >= c.hit - 1.5 && f <= c.hit + 3.5) k = Math.max(k, c.i === 0 ? 20 : 14);
+      if (f >= c.w0 - 0.6 && f <= c.hit) { const sp = Math.max(camera.whipSpeed(f - 0.25, c.w0, c.hit), camera.whipSpeed(f, c.w0, c.hit), camera.whipSpeed(f + 0.25, c.w0, c.hit)); if (sp > 0.05) k = Math.max(k, 3 + Math.round(sp * 3)); }
+      if (f >= c.hit - 1.5 && f <= c.hit + 2.5) k = Math.max(k, 4);
     }
-    const c0 = cities[0]; if (f >= c0.hit && f < c0.hit + 6) k = Math.max(k, Math.round(22 * (1 - (f - c0.hit) / 6)) + 4);
-    return Math.min(k, 32);
+    const c0 = cities[0]; if (f >= c0.hit && f < c0.hit + 5) k = Math.max(k, 6);
+    return Math.min(k, 6);
   }
 
   return {
@@ -121,8 +121,8 @@ export default function act4(ctx) {
     update(t) {
       const env = ctx.env, cam = ctx.cam;
       kits.world.preset(env, 'city');
-      env.sun = { az: -46, el: 33, intensity: 1.62, dir: null };
-      env.ambient = { up: 0.60, down: 0.38, bounce: 0 };
+      env.sun = { az: -52, el: 29, intensity: 1.75, dir: null };
+      env.ambient = { up: 0.46, down: 0.28, bounce: 0 };
       env.fog = { density: 0.00012, height: 450, floorY: 0, air: 0.00001 };
       env.ground = { albedo: [0.47, 0, 0] };
       const P = poseAt(t);
