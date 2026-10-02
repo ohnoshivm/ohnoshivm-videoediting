@@ -29,13 +29,16 @@ export default function act5(ctx) {
 
   const stages = STAGES.map(([cueId, n, cols, rows], si) => ({ si, hit: ctx.cue(cueId), n, cols, rows, panels: [] }));
   let pi = 0;
+  const CH = 320, DR = 5000;
   for (const st of stages) {
+    st.rowMode = st.n >= 32; st.rowGroups = [];
+    if (st.rowMode) for (let r = 0; r < st.rows; r++) { const rg = new THREE.Group(); ctx.root.add(rg); ctx.gate(rg); st.rowGroups.push(rg); }
     const aspect = (1920 / st.cols) / (1080 / st.rows), last = st.n === 64;
     const lod = st.n <= 4 ? 0 : st.n <= 16 ? 1 : 2, nameSize = st.n <= 4 ? 512 : st.n <= 8 ? 320 : st.n <= 16 ? 200 : 128;
     for (let k = 0; k < st.n; k++) {
       const [text, lang, ai] = POOL[(pi++ + (st.n === 64 ? 0 : 0)) % POOL.length];
       const arch = ARCH[ai];
-      const b = S2.buildCity(kits, st.n >= 16 ? 'panel' : arch, { hit: st.hit + 6, seed: arch + ':' + text + ':' + st.n + ':' + k, lod, shadow: false, thinF: st.n >= 8 ? 0.7 : 1, durRange: [4, 6], waveScale: 0.25, hScale: last ? 0.3 : 1, extra: last ? (ts) => { const rng = ctx.rng('uni:' + k), B = [], C = [];
+      const b = S2.buildCity(kits, st.n >= 16 ? 'panel' : arch, { hit: st.hit + 6, seed: arch + ':' + text + ':' + st.n + ':' + k, lod, shadow: false, thinF: st.n >= 8 ? 0.7 : 1, span: st.rowMode ? CH * aspect * 0.8 : 0, durRange: [4, 6], waveScale: 0.25, hScale: last ? 0.3 : 1, extra: last ? (ts) => { const rng = ctx.rng('uni:' + k), B = [], C = [];
         for (const t of ts) { const tb = { ...t, w: t.w + 1.4, d: t.d + 1.4, h: t.h / 0.3, layer: 0, wave: 0 }; tb.riseH = tb.h * 0.7; B.push(tb);
           if (rng() < 0.45) C.push({ ...t, x: t.x + (rng() - 0.5) * 40, z: t.z + (rng() - 0.5) * 40, w: t.w * 0.75, d: t.d * 0.75, h: t.h / 0.3 * 0.55, riseH: 0, layer: 0 }); }
         S2.timeTowers(B, { hit: UNI, rng, dropDur: 4, dur: [12, 12], drop: [90, 170], tall: 1e9 });
@@ -48,8 +51,14 @@ export default function act5(ctx) {
       N.mesh.scale.setScalar(kk / N.k0); N.yb = b.def.name.y; N.yc = N.yb + (N.baseT - N.texH / 2) * kk;
       N.mistU.y0.value = N.yb - 0.1 * N.inkH * kk; N.mistU.y1.value = N.yb + 0.62 * N.inkH * kk; N.mistU.lo.value = 0.12;
       N.mesh.position.set(nx, N.yc, nz); N.mesh.rotation.y = Math.atan2(g.pos[0] - nx, g.pos[2] - nz);
-      b.group.add(N.mesh); ctx.root.add(b.group); ctx.gate(b.group);
-      const p = { b, N, fovV, cam: ctx.makeCam(), c: k % st.cols, r: Math.floor(k / st.cols), planeH: N.texH * kk };
+      if (st.rowMode) {
+        const ccx = k % st.cols, rr = Math.floor(k / st.cols), CW = CH * aspect, ox = (ccx - (st.cols - 1) / 2) * CW, fit = Math.min(CW / 360, 0.88);
+        N.mesh.rotation.y = 0; N.mesh.scale.multiplyScalar(0.55); N.yc *= 0.6; N.yb *= 0.6; N.kk = kk * 0.55;
+        N.mistU.y0.value = N.yb - 0.1 * N.inkH * N.kk; N.mistU.y1.value = N.yb + 0.62 * N.inkH * N.kk;
+        b.group.position.set(ox, 0, 0); b.group.scale.setScalar(fit * Math.hypot(ox, DR) / DR);
+        st.rowGroups[rr].add(b.group);
+      } else { ctx.root.add(b.group); ctx.gate(b.group); }
+      const p = { b, N, fovV, cam: ctx.makeCam(), c: k % st.cols, r: Math.floor(k / st.cols), planeH: N.texH * (N.kk || kk) };
       st.panels.push(p);
     }
   }
@@ -79,6 +88,18 @@ export default function act5(ctx) {
       const st = stageAt(t), Z = zoomAt(t), dt = Math.max(0, t - st.hit), sh = addShake(shake(t, events, { rollScale: 0.3 }), rumble(t, TEN, END + 1, 0.05, 1.6, { freq: 0.9, seed: 4 }));
       const tenE = EASE.inCubic(clamp((t - TEN) / (END + 1 - TEN)));
       const views = [];
+      if (st.rowMode) {
+        const yc = 0.32 * CH, fov = 2 * Math.atan(CH / 2 / DR) * 180 / Math.PI;
+        st.rowGroups.forEach((rg, r) => {
+          const rc = rectOf(st, 0, r, Z); rc[0] = 0.5 + (0 - 0.5) * Z; rc[2] = Z;
+          if (rc[1] > 1 || rc[1] + rc[3] < 0) return;
+          st.cam = st.cam || ctx.makeCam(); const cm = st.cam;
+          cm.set({ pos: [0, yc, DR], look: [0, yc, 0], fov, near: 100, far: 40000 }); cm.shake = { yaw: sh.yaw * 0.25, pitch: sh.pitch * 0.5, roll: sh.roll * 0.3, x: 0, y: 0, z: 0 };
+          views.push({ rect: rc, cam: cm, only: [rg, ground], env: { shadow: { on: false }, fog: { density: 0.00003, height: 450, floorY: 0, air: 0.000005 } } });
+        });
+        for (const p of st.panels) { const hit = st.hit + 6, ne = t < hit ? EASE.inCubic(clamp((t - (hit - 6)) / 6)) : 1 + 0.04 * Math.exp(-(t - hit) / 1.7) * Math.sin((t - hit) * 1.6); p.N.mesh.position.y = p.N.yc - (p.planeH + p.N.yb + 40) * (1 - ne); }
+        ctx.views = views; return;
+      }
       for (const p of st.panels) {
         const g = p.b.def.cam, hold = Math.max(1, (st.si < 5 ? stages[st.si + 1].hit : UNI) - st.hit), e = EASE.inOutSine(clamp(dt / 60)) * (st.si === 5 ? 0.6 : 1);
         const push = 1 + tenE * 3.2;

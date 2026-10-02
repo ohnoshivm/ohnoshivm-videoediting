@@ -344,8 +344,8 @@ export const CITIES = {
 };
 
 CITIES.panel = function panel(rng, o = {}) {
-  const cam = { pos: [0, 46, 430], look: [0, 150, -300], fov: 40, push: [10, 3, -30] }, T = [], n = o.n || 6, pick = crownSeq(rng, { A: 0.55, Dd: 0.45 });
-  const span = 330, pitch = span / (n - 1);
+  const cam = { pos: [0, 46, 430], look: [0, 150, -300], fov: 40, push: [10, 3, -30] }, T = [], n = o.span > 400 ? 8 : 6, pick = crownSeq(rng, { A: 0.55, Dd: 0.45 });
+  const span = o.span > 400 ? o.span / 0.88 : 330, pitch = span / (n - 1);
   for (let i = 0; i < n; i++) {
     const w = rng.range(20, 28), h = rng.range(170, 340) * (0.55 + 0.45 * Math.sin(Math.PI * (i + 0.5) / n)), crown = pick(), cs = 1.15;
     T.push({ x: -span / 2 + i * pitch + rng.range(-6, 6), z: rng.range(-30, 30) - (i % 2) * 70, w, d: w * rng.range(0.9, 1.2), h: Math.max(6.2 * w, h), crown, crownScale: cs, wave: 0, pitch: 4, layer: 0 });
@@ -377,9 +377,9 @@ export function patchHaze(set, haze, hazeLow = 1) {
 }
 
 /** Builds one city: {group, sets[], water[], towers, ...}. hit = frame its main wave's crowns land. Towers are split into haze LAYERS (def.hazes[layer] = [haze, hazeLow]). */
-export function buildCity(kits, name, { hit = 0, seed = name, lod = 0, shadow = true, thinF = 1, dropDur = 4, durRange = [6, 9], waveScale = 1, hScale = 1, extra = null } = {}) {
+export function buildCity(kits, name, { hit = 0, seed = name, lod = 0, shadow = true, thinF = 1, dropDur = 4, durRange = [6, 9], waveScale = 1, hScale = 1, extra = null, span = 0 } = {}) {
   const rng = makeRng('s2:' + seed);
-  const def = CITIES[name](rng, { thin: thinF });
+  const def = CITIES[name](rng, { thin: thinF, span });
   const trng = makeRng('s2t:' + seed);
   timeTowers(def.towers, { hit, rng: trng, dropDur, dur: durRange, waveScale });
   for (const T of def.towers) if (!T.hero && T.crown !== 'S') { const wmax = Math.max(14, T.h / 6); if (T.w > wmax) { const f = wmax / T.w; T.w *= f; T.d = Math.min(T.d * f * 1.1, T.w * 1.2); T.crownScale = Math.min(1.3, (T.crownScale || 1) / Math.sqrt(f)); } }
