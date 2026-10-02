@@ -17,7 +17,7 @@ export default async function act2(ctx) {
   const RAIL = { azEnd: 14, yOrbit: 1070, yCrown: 1000, nxOrbit: 0.42 };
   const rail = L.rail2(P0, RAIL);
   const railAt = (t) => rail.at(t);
-  const BLOCK_W = 1142, place = L.blockPlacement(P0, rail, { dist: 1293, y: 304, shiftX: -329, tiltDeg: 34.3 });
+  const BLOCK_W = 1040, place = L.blockPlacement(P0, rail, { dist: 1293, y: 304, shiftX: -430, tiltDeg: 34.3 });   // integrator: narrower + further left so UNSOLD. clears the tower
   const block = new THREE.Group(); block.position.set(...place.C); block.rotation.set(-place.tilt, place.yaw, 0, 'YXZ'); ctx.root.add(block);
   const lay = L.justify([{ text: 'NO TOWER' }, { text: 'RISES' }, { text: 'UNSOLD.' }], BLOCK_W, BLOCK_W * 0.04);
   const lines = lay.lines.map((ln) => {
@@ -47,7 +47,8 @@ export default async function act2(ctx) {
       cam.shake = t < 240 ? addShake(shake(t, IMPACTS, { rollScale: 0.3 })) : addShake(shake(t, IMPACTS, { rollScale: 0.3 }), rumble(t, 240, 256, 0.25, 2.2, { freq: 0.95, seed: 9 }));
       // type: line 1+2 land on f128 (scale pulse), line 3 rises from its mask on f160
       const p128 = clamp((t - 127.5) / 6.5), s128 = 1 + 0.08 * Math.pow(1 - EASE.outExpo(p128), 1.0);
-      env.fog.density = lerp(env.fog.density, 0.0035, EASE.inOutSine(prog(t, 232, 252)));
+      env.fog.density = lerp(env.fog.density, 0.0016, EASE.inOutSine(prog(t, 232, 252)));   // integrator: thinner so the plaza/ground reads in the dive
+      plaza.group.visible = t >= 236;                     // seen from crown height they read as debris; they only serve the dive
       block.scale.setScalar(s128); block.visible = t < 221;
       lines[0].tl.mesh.visible = lines[1].tl.mesh.visible = t >= 127.5;
       const rise = EASE.outExpo(clamp((t - 159.5) / 8));

@@ -161,7 +161,8 @@ export function rail2(P0, o = {}) {
   const nX = track([[127, ndc0[0]], [158, K.nxOrbit, 'cine'], [224, K.nxOrbit], [240, K.nxOrbit], [250, 0.0, 'inOutSine']]);
   const nY = track([[127, ndc0[1]], [158, K.nyOrbit], [224, 0.12, 'inOutSine'], [240, 0.12], [256, 0.0, 'inOutSine']]);
   const tYb = track([[127, HERO.centre], [240, HERO.centre]]);
-  const tY = (t) => (t < 240 ? tYb(t) : yy(t) + lerp(-40, 150, EASE.inOutSine(prog(t, 240, 256))));
+  const tDive = track([[240, -40], [247, -230, 'inOutSine'], [256, 150, 'inOutSine']]);   // integrator: pitch down mid-dive so the ground/plaza rushes up (ground reference); same values at 240 and 256
+  const tY = (t) => (t < 240 ? tYb(t) : yy(t) + tDive(t));
   const fovT = track([[127, P0.fov], [240, P0.fov], [256, 88, 'inQuad']]);
   return { az0, r0, y0, ndc0, at(t) {
     const pos = cyl(az(t), rr(t), yy(t)), fov = fovT(t);

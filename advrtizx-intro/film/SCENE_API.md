@@ -41,6 +41,7 @@ export default function act3(ctx) {
     },
     overlay(t, g) { /* optional: 2D type, 1920x1080 logical px. return false if nothing drawn at t */ },
     samples(t) { return t >= 376 ? 24 : 8; },   // optional: motion-blur sub-frames at t (1..32). The engine takes the max over active scenes.
+    shutter(t) { return 0.25; },                // optional: shutter as a fraction of a frame (default 0.5 = 180 deg). The engine takes the min over active scenes.
   };
 }
 ```

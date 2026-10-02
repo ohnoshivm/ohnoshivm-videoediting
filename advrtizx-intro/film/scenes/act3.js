@@ -15,8 +15,9 @@ export default async function act3(ctx) {
 
   const ar = L.typeLine({ text: 'دبي', em: 1050, lang: 'arabic', pxPerEm: 700, fog: 0.5, stretch: 100 });
   const lat = L.typeLine({ text: 'DUBAI', em: 250, track: 0.4, stretch: 125, pxPerEm: 600, fog: 0.5 });
-  const TZ = -3400, AB = 1560;
-  ar.mesh.position.set(900, AB + ar.centreAboveBaseline, TZ); lat.mesh.position.set(900, 880 + lat.centreAboveBaseline, TZ);
+  const TZ = -3400, AB = 2380;   // integrator: raised so small DUBAI sits clear above the skyline
+  const TX = 1800;   // integrator: right of the hero tower so DUBAI is not overlapped
+  ar.mesh.position.set(TX, AB + ar.centreAboveBaseline, TZ); lat.mesh.position.set(TX, 1450 + lat.centreAboveBaseline, TZ);
   ctx.root.add(ar.mesh); ctx.root.add(lat.mesh);
 
   const IMP = [{ f: 256, amp: 3.6, decay: 4.2, seed: 1 }, { f: 264, amp: 2.8, decay: 3.4, seed: 2 }, { f: 272, amp: 2.4, decay: 3.2, seed: 3 }, { f: 280, amp: 2.0, decay: 3, seed: 4 }, { f: 288, amp: 2.6, decay: 3.6, seed: 5 },

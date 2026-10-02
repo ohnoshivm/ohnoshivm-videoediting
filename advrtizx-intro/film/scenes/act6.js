@@ -47,7 +47,7 @@ export default function act6(ctx) {
   const poseAt = (t) => {
     const u = t - U0, ur = clamp((u - (RISE0 - U0)) / (END + 1 - RISE0));
     const rise = EASE.inCubic(ur), tilt = EASE.inOutSine(ur);
-    const y = Y0 + 250 * rise, pitch = lerp(P.pitch0, -1.0, tilt) * DEG, yaw = yawT(u) * DEG, fov = lerp(FOV0, 30, tilt);
+    const y = Y0 + 420 * rise, pitch = lerp(P.pitch0, -2.5, tilt) * DEG, yaw = yawT(u) * DEG, fov = lerp(FOV0, 30, tilt);
     const pos = [camX(u), y, 0];
     const look = [pos[0] + Math.sin(yaw) * Math.cos(pitch) * 1000, y + Math.sin(pitch) * 1000, -Math.cos(yaw) * Math.cos(pitch) * 1000];
     return { pos, look, fov };
@@ -97,6 +97,7 @@ export default function act6(ctx) {
   const boards = [];   // {board, L, P, H, W, tEnd, kind}
   const addBoard = (li, L, plan, kind, tEnd) => {
     const lg = LANGS[li], pl = placeBoard(L, plan, lg.face.aspect);
+    pl.P[2] += 2.0 * boards.length;   // integrator: boards sharing an alley were coplanar (z-fighting stripes); later stamps sit a hair nearer
     const b = new Board({ tex: lg.face.tex, faceAspect: lg.face.aspect, H: pl.H, yc: pl.P[1], fogAmt: 0.5, name: `sold.${lg.id}.${kind}` });
     ctx.root.add(b.group);
     const rec = { board: b, L, P: pl.P, H: pl.H, W: pl.W, alley: pl.alley, tEnd, kind, li, hf: plan.hf };
@@ -190,29 +191,33 @@ export default function act6(ctx) {
 
   /* ───────────── shake ───────────── */
   const impacts = [];
-  SOLD.forEach((f, i) => impacts.push({ f, amp: i === 0 ? 1.5 : 1.1 - 0.02 * i, decay: 3.2, freq: 0.55, seed: i }));
-  STORM.forEach((f, i) => impacts.push({ f, amp: 0.85, decay: 2.2, freq: 0.7, seed: 20 + i }));
-  for (let f = U0 + 8; f < RISE0; f += 8) if (!SOLD.includes(f)) impacts.push({ f, amp: 0.22, decay: 2.0, freq: 0.8, seed: 40 + (f - U0) / 8 });
+  // integrator: amplitudes/frequencies scaled for the 24-30 deg long lens; at the old values one 180-deg shutter spanned a ~5% image swing,
+  // which K<=6 sub-frames rendered as discrete ghost copies on every slam. Kicks start 0.13 f early (just before the 90-deg shutter opens)
+  // so every sub-frame of the hit frame is kicked: no half-kicked double image
+  SOLD.forEach((f, i) => impacts.push({ f: f - 0.13, amp: i === 0 ? 0.85 : 0.62 - 0.01 * i, decay: 3.2, freq: 0.3, seed: i }));
+  STORM.forEach((f, i) => impacts.push({ f: f - 0.13, amp: 0.45, decay: 2.2, freq: 0.36, seed: 20 + i }));
+  for (let f = U0 + 8; f < RISE0; f += 8) if (!SOLD.includes(f)) impacts.push({ f: f - 0.13, amp: 0.14, decay: 2.0, freq: 0.4, seed: 40 + (f - U0) / 8 });
   const LAND = SOLD.concat(STORM), HOLD = 2.5, GLIDE = 9;
 
   /* ───────────── scene ───────────── */
   const sunV = (az, el) => [Math.sin(az * DEG) * Math.cos(el * DEG), Math.sin(el * DEG), Math.cos(az * DEG) * Math.cos(el * DEG)];
   return {
     id: 'act6', start: U0, end: END,
+    shutter() { return 0.25; },   // integrator: 90-degree shutter on the long-lens truck + slams: halves sub-frame spacing at K<=6 (staccato, no ghost copies)
     samples(t) {
-      for (const L of LAND) if (t > L - 5.3 && t < L + 3.2) return 6;
+      for (const L of LAND) if (t > L - 5.3 && t < L + (L >= STORM0 ? HOLD + GLIDE * 0.75 : 3.2)) return 6;   // integrator: cover the storm push-back glide (ghost steps at K=2)
       return t < 1040 ? 4 : t < RISE0 ? 2 : 3;
     },
     update(t) {
       const env = ctx.env, cam = ctx.cam, st = poseAt(t);
       kits.world.preset(env, 'world');
-      env.sun = { az: -38, el: 34, intensity: P.sun, dir: null };
-      env.ambient = { up: 0.78, down: 0.50, bounce: 0 };
+      env.sun = { az: -58, el: 32, intensity: P.sun, dir: null };     // integrator: more raking key so front and side faces separate (was a flat white mass)
+      env.ambient = { up: 0.66, down: 0.46, bounce: 0 };
       env.fog = { density: P.fogD, height: P.fogH, floorY: 0, air: P.fogAir };
       env.ground = { albedo: [0.5, 0, 0] };
       env.post = { grain: 1.0, vignette: 0.42 };
       // key-light shadow volume follows the camera; the centre is snapped to the shadow-map texel grid so edges never crawl
-      { const R = 700, size = P.shadowSize, tex = (2 * R) / size, d = sunV(-38, 34);
+      { const R = 700, size = P.shadowSize, tex = (2 * R) / size, d = sunV(-58, 32);
         const l = Math.hypot(d[0], d[2]), xa = [d[2] / l, 0, -d[0] / l], ya = [-d[1] * d[0] / l, l, -d[1] * d[2] / l];      // light-space axes (as engine lookAt)
         const c = [st.pos[0] + 380, 140, -720];
         const px = c[0] * xa[0] + c[1] * xa[1] + c[2] * xa[2], py = c[0] * ya[0] + c[1] * ya[1] + c[2] * ya[2];
@@ -224,7 +229,7 @@ export default function act6(ctx) {
       env.rings = rings;
 
       cam.set({ pos: st.pos, look: st.look, fov: st.fov, near: 3, far: 60000 });
-      cam.shake = addShake(shake(t, impacts, { rollScale: 0.35 }), rumble(t, RISE0, END + 0.9, 0.08, 1.3, { freq: 0.9, seed: 5 }));
+      cam.shake = addShake(shake(t, impacts, { rollScale: 0.35 }), rumble(t, RISE0, END + 0.9, 0.05, 0.45, { freq: 0.45, seed: 5 }));
 
       // boards: stamped from the lens into the world; storm signs are then pushed back into the pyramid
       for (const b of boards) {

@@ -282,8 +282,8 @@ export const CITIES = {
   sydney(rng, o = {}) {
     const cam = fitCam({ pos: [-60, 58, 640], look: [90, 140, -150], fov: 40, push: [28, 3, -30] }, 600, 0.82), S = roofAt(cam), crowns = { A: 0.28, Am: 0.12, Dd: 0.34, Ds: 0.14, Dsm: 0.12 };
     const T = [];
-    T.push({ x: -150, z: 30, w: 330, d: 90, h: 7, crown: null, wave: 0, hero: 'podium', pitch: 6, layer: 0 });
-    const sails = [[-262, 118, false, 14], [-196, 94, false, -4], [-142, 70, false, -20], [-72, 106, true, 8], [-14, 80, true, -10], [34, 56, true, -24]];
+    T.push({ x: -50, z: 30, w: 330, d: 90, h: 7, crown: null, wave: 0, hero: 'podium', pitch: 6, layer: 0 });
+    const sails = [[-150, 118, false, 14], [-84, 96, false, -4], [-30, 76, false, -20], [18, 60, false, -34], [58, 46, false, -48]];   // integrator: shifted into frame; mirrored shells read as a flat white block
     const B = bander(rng, S, crowns, (x) => 0.4 + 0.6 * bell(x, 420, 380));
     T.push(...B({ z: -520, s: [0.58, 0.40], pitch: 100, stagger: 0, w: [38, 52], wave: 8, cs: 0.84, layer: 1, x0: 200, x1: 1000 }));
     T.push(...B({ z: -700, s: [0.50, 0.34], pitch: 116, stagger: 50, w: [42, 58], wave: 16, cs: 0.8, layer: 2, x0: 200, x1: 1040 }));

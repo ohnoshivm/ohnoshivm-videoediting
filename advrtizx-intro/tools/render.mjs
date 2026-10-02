@@ -3,7 +3,7 @@
 // in order into ffmpeg (libx264, bt709, yuv420p, 30 fps) and the score (audio/out/score.wav) is muxed if it exists.
 //
 //   node tools/render.mjs --draft                      half-res (960x540), K=1, fast encode -> renders/advrtizx-intro-draft.mp4
-//   node tools/render.mjs --final                      1080p, motion blur (K from the scenes, min 4 for antialiasing), grain, x264 slow
+//   node tools/render.mjs --final                      1080p, motion blur (K from the scenes' samples(t), capped at 6), grain, x264 slow
 //   node tools/render.mjs --draft --from 0 --to 127 --out out/act1.mp4         a range
 //   node tools/render.mjs --draft --acts 3 --from 256 --to 383                 only load act 3 (scene agents)
 // Flags: --draft | --final  --from N --to N  --acts 1,2  --out FILE  --workers N  --scale S  --k N (force sub-frames)  --kmin N  --kmax N
@@ -31,8 +31,9 @@ const audioFile = audioArg === 'none' ? null : (audioArg === 'auto' ? path.join(
 const haveAudio = audioFile && fs.existsSync(audioFile);
 const query = {}; if (arg('acts') && arg('acts') !== true) query.acts = arg('acts');
 if (arg('k')) query.k = arg('k'); else if (!final) query.k = 1;
-if (arg('kmin')) query.kmin = arg('kmin'); else if (final) query.kmin = 4;
-if (arg('kmax')) query.kmax = arg('kmax');
+// Final: honour each scene's samples(t) hook (K=1 on holds) with a global cap of 6 sub-frames (render budget ~2.5 h on 4 cores).
+if (arg('kmin')) query.kmin = arg('kmin');
+if (arg('kmax')) query.kmax = arg('kmax'); else if (final) query.kmax = 6;
 if (flag('strict')) query.strict = 1;
 const statsFile = arg('stats', path.join(ROOT, 'out/render-stats.json'));
 

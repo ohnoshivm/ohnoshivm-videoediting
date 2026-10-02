@@ -201,10 +201,12 @@ export class Engine {
     const K = this.pickK(f, act); this.stats.K = K; this.stats.subframes += K;
     r.setRenderTarget(this.rtAccum); r.setViewport(0, 0, W, H); r.setScissorTest(false); r.setClearColor(0x000000, 0); r.clear(true, false, false);
     const fi = Math.round(f * 1000);
+    // optional per-scene shutter(t) hook (fraction of a frame, additive API): the narrowest active shutter wins
+    let shutter = o.shutter; for (const s of act) if (s.shutter) { const v = s.shutter(f); if (v > 0 && v < shutter) shutter = v; }
     for (let k = 0; k < K; k++) {
       // 180-degree shutter centred on f; stratified jitter turns ghosting steps into noise
       const u = K > 1 ? 0.5 + (hash01(fi * 131 + k, 7) - 0.5) * o.timeJitter : 0.5;
-      const t = f + o.shutter * ((k + u) / K - 0.5);
+      const t = f + shutter * ((k + u) / K - 0.5);
       const jx = K > 1 ? (halton(k + 1, 2) - 0.5) : 0, jy = K > 1 ? (halton(k + 1, 3) - 0.5) : 0;
       this.subframe(t, act, jx, jy, 1 / K);
     }

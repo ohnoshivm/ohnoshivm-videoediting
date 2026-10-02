@@ -212,7 +212,7 @@ export function genSkyline({ rng, util, rows, xMin, xMax, camY, crownSize, exclu
       const cs = rng() < 0.72 ? 1 : 0.78 + 0.34 * rng();
       const cz = crownSize(kind), crownH = (cz.height / cz.width) * w * cs;
       const district = 1 + 0.24 * util.noise1(cx / (300 + 0.30 * d) + k * 0.31, 11);
-      let f = district * Math.exp(0.14 * rng.gauss());
+      let f = district * Math.exp((0.14 + 0.18 * Math.exp(-k / 6)) * rng.gauss());   // integrator: more height variety in the near rows
       const r = rng();
       if (r < 0.09) f *= 0.55 + 0.2 * rng(); else if (r > 0.93) f *= 1.3 + 0.4 * rng();       // low blocks, tall landmarks
       f = Math.min(2.0, Math.max(0.45, f));
