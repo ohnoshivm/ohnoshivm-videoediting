@@ -43,8 +43,8 @@ HALL_SPECS = {   # t60 (nominal, mid band), pre-delay, band multipliers, seed
 # sidechain presets: depth in dB per target, look-ahead (pre), hold and exponential release (seconds)
 DUCK = {
     "kick": dict(bass=9.0, music=1.7, ambience=1.2, wet=0.0, pre=0.003, hold=0.0, rel=0.11),
-    "big": dict(bass=10.0, music=6.0, ambience=5.0, wet=2.5, pre=0.004, hold=0.05, rel=0.55),
-    "med": dict(bass=6.0, music=3.0, ambience=2.5, wet=1.2, pre=0.004, hold=0.02, rel=0.28),
+    "big": dict(bass=10.0, music=7.5, ambience=5.0, wet=2.5, pre=0.004, hold=0.05, rel=0.55),
+    "med": dict(bass=6.0, music=4.0, ambience=2.5, wet=1.2, pre=0.004, hold=0.02, rel=0.28),
     "small": dict(bass=3.0, music=1.4, ambience=1.0, wet=0.5, pre=0.003, hold=0.0, rel=0.14),
     "stamp": dict(bass=2.5, music=2.0, ambience=1.0, wet=0.8, pre=0.003, hold=0.0, rel=0.16),
     # a one-frame vacuum: everything but the hit itself ducks out for `hold` seconds (set to the gap length by the caller)
@@ -71,7 +71,8 @@ class Mixer:
         self.log: list[dict] = []
         self.irs: dict[str, np.ndarray] = {}
         self.cuts = [0, N_TOTAL]          # reverb segment boundaries (hard cuts)
-        self.hard_cuts: list[int] = []    # events that span one of these samples are truncated there
+        self.hard_cuts: list[int] = []
+        self.send_delay_ms = {"music": 24.0, "fx": 10.0, "drums": 6.0, "impacts": 0.0, "bass": 0.0, "ambience": 0.0}    # events that span one of these samples are truncated there
 
     # ----------------------------------------------------------------------------------------------
     def ir(self, name: str) -> np.ndarray:
@@ -112,8 +113,10 @@ class Mixer:
             seg[-nf:] *= (0.5 + 0.5 * np.cos(np.pi * (np.arange(nf) + 1) / (nf + 1)))[:, None]
         self.dry[bus][s0:e] += seg
         if sends:
+            d = int(self.send_delay_ms.get(bus, 0.0) * 1e-3 * SR)     # pre-delay per layer: depth
+            e2 = min(N_TOTAL, e + d)
             for k, db in sends.items():
-                self.snd[k][s0:e] += seg * float(dbl(db))
+                self.snd[k][s0 + d:e2] += seg[: e2 - s0 - d] * float(dbl(db))
         if duck:
             self.duck_events.append((s0, duck, duck_scale))
         self.log.append(dict(name=name or kind or bus, cue=cue, frame=frame, sample=s0, end=e, bus=bus, kind=kind,

@@ -22,7 +22,14 @@ uniform sampler2D uReflTex; uniform float uReflOn; uniform vec2 uRes;
 in vec3 vWorld; out vec4 outColor;
 void main() {
   vec3 n = vec3(0.0, 1.0, 0.0);
-  vec3 col = lightSurface(uGround * uGroundTint, n, vWorld, 1.0);
+  // streets and plazas implied by soft tonal patches (low-frequency value noise, red-only modulation: never a grid, never a map)
+  vec2 q = vWorld.xz / 140.0, iq = floor(q), fq = fract(q); fq = fq * fq * (3.0 - 2.0 * fq);
+  float vn = mix(mix(hash12(iq), hash12(iq + vec2(1.0, 0.0)), fq.x), mix(hash12(iq + vec2(0.0, 1.0)), hash12(iq + vec2(1.0, 1.0)), fq.x), fq.y);
+  vec2 q2 = vWorld.xz / 37.0, i2 = floor(q2), f2 = fract(q2); f2 = f2 * f2 * (3.0 - 2.0 * f2);
+  float vn2 = mix(mix(hash12(i2), hash12(i2 + vec2(1.0, 0.0)), f2.x), mix(hash12(i2 + vec2(0.0, 1.0)), hash12(i2 + vec2(1.0, 1.0)), f2.x), f2.y);
+  float fadeT = 1.0 - smoothstep(0.15, 0.6, length(fwidth(q2)));
+  float tone = 1.0 + 0.10 * (vn - 0.5) + 0.06 * (vn2 - 0.5) * fadeT;
+  vec3 col = lightSurface(uGround * uGroundTint * tone, n, vWorld, 1.0);
   if (uReflOn > 0.5) { vec4 rf = texture(uReflTex, gl_FragCoord.xy / uRes); col = col * (1.0 - rf.a) + rf.rgb; }   // glossy floor: premultiplied skyline reflection
   // shock rings: displaced fog. Crisp outer edge, long soft tail inside, a hairline of white at the front.
   for (int i = 0; i < 4; i++) {

@@ -410,6 +410,7 @@ def braam(freqs, dur_s, seed=0, size=1.0, cut_peak=3600.0, cut_end=620.0, cut_ta
             # independent pitch drift per voice (+-2.5 cents, 0.4-1.1 Hz)
             dly = 0 if f < 120.0 else int(rng.uniform(0.0, 0.005) * SR)
             drift = 1.0 + 0.00145 * np.sin(TWO_PI * rng.uniform(0.4, 1.1) * t + rng.uniform(0, TWO_PI))
+            drift = drift * (1.0 + 0.0030 * np.minimum(t / 0.5, 1.0) * np.sin(TWO_PI * rng.uniform(4.6, 5.4) * t + rng.uniform(0, TWO_PI)))   # slow lip vibrato
             v = osc_saw(f * slur * drift * 2.0 ** (c / 1200.0), n, phase0=ph0) * w
             if dly:
                 v = np.concatenate([np.zeros(dly), v[:-dly]])
@@ -452,6 +453,10 @@ def braam(freqs, dur_s, seed=0, size=1.0, cut_peak=3600.0, cut_end=620.0, cut_ta
         nc = int(0.09 * SR)
         ch = _pair_noise_burst(nc, rng, 700.0, 3600.0, 0.022, 2, 1.0)
         out[:nc] += chiff * 0.5 * ch / (np.max(np.abs(ch)) + 1e-12)
+
+    # breath: band-passed air riding the note (brass is air + lips)
+    br = np.stack([bp(white(n, rng), 1200.0, 5200.0, 2) for _ in range(2)], axis=1)
+    out = out + 0.06 * br / (np.std(br) + 1e-12) * np.max(np.abs(out)) * 0.25 * (np.exp(-t / 1.2))[:, None]
 
     # amplitude: instant attack, sag to `hold`, long raised-cosine release
     sag = hold + (1.0 - hold) * np.exp(-t / sag_tau)

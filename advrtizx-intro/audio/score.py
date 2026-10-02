@@ -28,8 +28,22 @@ import cues  # noqa: E402
 import dsp  # noqa: E402
 import master as M  # noqa: E402
 import synth  # noqa: E402
+import foley  # noqa: E402
 from cues import BEAT, F, E, S  # noqa: E402
 from dsp import N_TOTAL, SR, dbl, note_hz, rng_for  # noqa: E402
+
+# ---- physical upgrade: every impact gets click / body / air-pressure / canyon slap / felt sub; whooshes are real air
+_impact_core = synth.impact
+
+
+def _impact_phys(f0=55.0, size=1.0, seed=0, t60=2.6, tail=3.6, **kw):
+    x = _impact_core(f0, size, seed=seed, t60=t60, tail=tail, **kw)
+    x = foley.enhance_impact(x, f0, size, seed, tail, pan=kw.get("pan", 0.0), canyon=(size >= 0.55 and kw.get("mid", 1.0) > 0.6))
+    return x / np.max(np.abs(x))
+
+
+synth.impact = _impact_phys
+synth.whoosh = foley.whoosh2
 
 OUT = os.path.join(HERE, "out")
 OUT_WAV = os.path.join(OUT, "score.wav")
@@ -141,6 +155,30 @@ def pad_gain_db(f):
 # ======================================================================================================
 # ACT I - THE CROWN
 # ======================================================================================================
+def ratchet(mx, f_a, f_b, seed, gain, n=20, p=0.55):
+    """floor-lock ratchet: clanks + clicks that accelerate and resolve into the landing at f_b."""
+    rng = rng_for(600, seed)
+    for k in range(n):
+        fr = f_a + (f_b - f_a) * (k / n) ** p
+        sm = cues.f2s(fr) + int(rng.uniform(0, 0.004) * SR)
+        if sm >= cues.f2s(f_b):
+            continue
+        u = k / n
+        x = foley.beam_clang(700 + seed * 100 + k, dur=0.22, size=0.5, hardness=1.2, plate=False)
+        mx.add("fx", sm, x, gain + 8.0 * u + float(rng.uniform(-2, 2)), sends={"room": -9.0}, name="RATCHET", kind="foley",
+               check=False)
+
+
+def stamp_big(note, seed, **kw):
+    a = synth.stamp(note, seed=seed, **kw)
+    b = foley.signboard(seed)
+    n = max(len(a), len(b))
+    out = np.zeros((n, 2))
+    out[:len(a)] += a * 0.8
+    out[:len(b)] += b * 1.0
+    return out / np.max(np.abs(out))
+
+
 def act1(mx):
     top = S("TOP_LOCK")
     # FALL: a massive object rips downward (100 ms) into the first impact
@@ -166,6 +204,26 @@ def act1(mx):
         gain = -17.0 + 8.5 * u ** 0.8
         mx.add("impacts", c.sample, x, gain, sends={"room": -8.0, "hall": -12.0}, name=c.name, kind="slam", cue=c.name,
                frame=c.frame, duck="small", duck_scale=0.8)
+    # ---- FOLEY: the jack-up. hydraulic jacks + crane + per-floor beam clang, concrete thump, rebar rattle, ratchet
+    j = foley.hydraulic_jack(1, (top - cues.f2s(8)) / SR, rate0=6.0, rate1=26.0, whine0=330.0, whine1=1150.0)
+    mx.add("fx", cues.f2s(8), j, -17.0, sends={"hall": -9.0, "room": -9.0}, name="JACK", kind="foley", check=False)
+    cr = foley.crane_creak(2, (top - cues.f2s(2)) / SR)
+    mx.add("fx", cues.f2s(2), cr, -22.0, sends={"hall": -10.0}, name="CRANE", kind="foley", check=False)
+    for k, c in enumerate(fl):
+        nxt = fl[k + 1].frame if k + 1 < len(fl) else c.frame + 1
+        sp = max(1, nxt - c.frame) / 30.0
+        u = k / (len(fl) - 1)
+        bc = foley.beam_clang(100 + k, dur=float(np.clip(sp * 7 + 0.25, 0.3, 1.8)), size=1.1 - 0.5 * u)
+        mx.add("impacts", c.sample, bc, -22.0 + 6.0 * u, sends={"hall": -9.0, "room": -8.0}, name=c.name + "_beam", kind="foley",
+               check=False)
+        if k < 16:
+            th = foley.concrete_thump(k, f=48.0 + 30.0 * u, dur=0.6)
+            mx.add("impacts", c.sample, th, -17.0 + 3.0 * u, sends={"room": -9.0}, name=c.name + "_thump", kind="foley",
+                   check=False)
+        rt = foley.rattle(k, float(np.clip(sp * 1.6, 0.12, 0.5)), dens0=180.0, dens1=30.0, chain=(k % 3 == 0))
+        mx.add("fx", c.sample, rt, -24.0 + 5.0 * u, sends={"room": -8.0, "hall": -12.0}, name=c.name + "_rattle", kind="foley",
+               check=False)
+    ratchet(mx, F("FLOOR_01"), F("TOP_LOCK"), 1, -24.0, n=34)
     # ROAR: merges the per-frame hits, cut dead by TOP_LOCK
     r = synth.roar((E("ROAR") - F("ROAR")) / 30.0, seed=1)
     mx.add("fx", S("ROAR"), r, -12.0, sends={"hall": -12.0}, name="ROAR", kind="riser", cue="ROAR", frame=F("ROAR"),
@@ -175,6 +233,12 @@ def act1(mx):
     cut = S("LOCK_CUT")
     mx.add("impacts", top, lk, -2.5, sends={"room": -6.0}, until=cut, name="TOP_LOCK", kind="lock", cue="TOP_LOCK",
            frame=F("TOP_LOCK"))
+    bcl = foley.beam_clang(900, f0=96.0, dur=0.5, size=1.7, hardness=1.2)
+    mx.add("impacts", top, bcl, -9.0, sends={"room": -6.0}, until=cut, name="LOCK_beam", kind="foley", check=False)
+    tl = foley.concrete_thump(901, f=52.0, dur=0.45, size=1.4)
+    mx.add("impacts", top, tl, -8.0, until=cut, name="LOCK_thump", kind="foley", check=False)
+    tr = foley.concrete_thump(902, f=64.0, dur=0.3, size=0.8)                 # dip-and-rebound
+    mx.add("impacts", top + int(0.14 * SR), tr, -15.0, until=cut, name="LOCK_rebound", kind="foley", check=False)
     # WIND: very quiet high-altitude wind
     n_w = int((F("LINE1") + 32 - F("WIND")) / 30.0 * SR)
     w = synth.wind(n_w / SR, seed=5)
@@ -198,6 +262,14 @@ def pedal(mx):
            (1152, -31.0), (1344, -26.0), (1375, -25.0)]
     g = np.interp(f, [p[0] for p in pts], [p[1] for p in pts])
     d = d * dbl(g)[:, None]
+    ca = foley.city_air((F("HARD_SILENCE") - F("LINE1")) / 30.0, seed=3, top=0.0)
+    fc_ = F("LINE1") + np.arange(len(ca)) / cues.SPF
+    cb = np.interp(fc_, [128, 192, 256, 640, 896, 1152, 1280, 1375], [-62.0, -46.0, -45.0, -43.0, -41.0, -44.0, -42.0, -40.0])
+    mx.add("ambience", S("LINE1"), ca * dbl(cb)[:, None], 0.0, name="CITY_AIR", kind="ambience", check=False)
+    tw = foley.city_air((F("HARD_SILENCE") - F("CLIMAX")) / 30.0, seed=4, rumble=0.0, gust=0.4, top=1.0)
+    ft_ = F("CLIMAX") + np.arange(len(tw)) / cues.SPF
+    tb = np.interp(ft_, [1152, 1250, 1375], [-52.0, -42.0, -39.0])
+    mx.add("ambience", S("CLIMAX"), tw * dbl(tb)[:, None], 0.0, name="TOP_AIR", kind="ambience", check=False)
     mx.add("ambience", a, d, 0.0, name="PEDAL_DRONE", kind="pedal", cue="DRONE_RETURN", frame=F("DRONE_RETURN"),
            check=False)
 
@@ -255,7 +327,7 @@ def act2(mx):
            cue="TEASE_1", frame=F("TEASE_1"))
     # DIVE: the camera plunges - a falling whoosh, a noise riser and a driven plunge tone, ending 10 ms before the drop
     d = synth.whoosh((E("DIVE") - F("DIVE")) / 30.0, "dive", f_lo=380.0, f_hi=8200.0, q=2.0, pan0=-0.25, pan1=0.25,
-                     seed=3, end_fade_ms=10.0)
+                     seed=3, end_fade_ms=10.0, pressure=0.9)
     mx.add("fx", S("DIVE"), d, -6.0, sends={"hall": -16.0}, name="DIVE", kind="whoosh", cue="DIVE", frame=F("DIVE"),
            check=False)
     rz = synth.noise_riser((E("DIVE") - F("DIVE")) / 30.0, f0=900.0, f1=12500.0, q=1.2, seed=4, amp0_db=-30.0,
@@ -431,6 +503,18 @@ def groove(mx):
                         fz, dc, seed=i % 3, slap=1.0, sub_amt=0.65, sub_decay=0.6))
                     mx.add("drums", s, tx, LV["taiko"] + dbs(v) + gs, sends={"hall": -8.0, "room": -11.0}, name="TAIKO",
                            kind="drum", duck="small" if step else "med", check=False)
+                    for j, (off, dg, ratio) in enumerate(((0.007, -5.0, 1.0), (0.013, -7.0, 1.5))):          # the ensemble
+                        tx2 = cached(("taikoE", fz, dc, j), lambda fz=fz, dc=dc, j=j, r=ratio: synth.taiko(
+                            fz * r if r != 1.0 else fz, dc, seed=10 + j, slap=0.6, sub_amt=0.2, sub_decay=0.5))
+                        mx.add("drums", s + int(off * SR), tx2, LV["taiko"] + dbs(v) + gs + dg, sends={"hall": -8.0},
+                               name="TAIKO_E", kind="drum", check=False)
+            # ------------------------------------------------ STRINGS: low ensemble ostinato on the A pedal (from New York on)
+            if f >= F("CITY_NEWYORK") and not in_return and not in_roll and (step % 2 == 0 or full):
+                acc_ = 1.0 if step % 4 == 0 else 0.6
+                sx_ = cached(("str", round(acc_, 1), (bar_idx + step) % 4), lambda a=acc_, i=(bar_idx + step) % 4: foley.string_note(
+                    110.0, 0.10, i, accent=a))
+                mx.add("music", s, sx_, -21.0 + gs + (0 if step % 4 == 0 else -3.0), sends={"hall": -11.0}, name="STRINGS",
+                       kind="stab", check=False)
             # ------------------------------------------------ TICKS / hats
             t8 = groove_active("ticks8", f) or world or climax
             t16 = groove_active("ticks16", f) or world or (climax and cbar >= 1)
@@ -501,6 +585,18 @@ def city_hit(mx, c):
     gain = LV["city0"] + (LV["city1"] - LV["city0"]) * ni / 9.0
     mx.add("impacts", c.sample, x, gain, sends={"hall": -6.0, "room": -9.0}, name=c.name, kind="city", cue=c.name,
            frame=c.frame, duck="big" if ni >= 7 else "med")
+    ni_ = ni
+    bcl = foley.beam_clang(1000 + ni, f0=130.0 + 12.0 * ni, dur=1.6, size=1.0 + 0.04 * ni)
+    mx.add("impacts", c.sample, bcl, gain - 9.0, sends={"hall": -8.0, "room": -9.0}, name=c.name + "_beam", kind="foley", check=False)
+    th = foley.concrete_thump(1100 + ni, f=50.0 + 2.0 * ni, dur=0.6, size=1.2)
+    mx.add("impacts", c.sample, th, gain - 5.0, name=c.name + "_thump", kind="foley", check=False)
+    rb = foley.concrete_thump(1200 + ni, f=66.0, dur=0.3, size=0.8)                    # crown dip-and-rebound
+    mx.add("impacts", c.sample + int(0.15 * SR), rb, gain - 13.0, name=c.name + "_rebound", kind="foley", check=False)
+    win = 12 if ni else 16
+    gl = foley.glass_ripple(1300 + ni, win / 30.0, n_seats=20 + 3 * ni)
+    mx.add("fx", c.sample - int(win / 30.0 * SR), gl, -22.0 + 0.8 * ni, sends={"hall": -12.0}, name=c.name + "_glass", kind="foley",
+           check=False)
+    ratchet(mx, c.frame - win, c.frame, 30 + ni, -27.0, n=8 + ni)
     notes = VOICE[chord]["stab"] + [top]
     st = cached(("citystab", chord, ni), lambda: synth.stab(HZ(notes), dur_s=0.30 + 0.01 * ni, seed=500 + ni, bright=1.0 + 0.04 * ni,
                                                            release=0.34))
@@ -607,6 +703,8 @@ def act5(mx):
     b5 = cached("bell_A5_long2", lambda: synth.bell(note_hz("A5"), 5.5, seed=42, amp_tau=1.5))
     mx.add("music", S("TEASE_2"), b5, -13.0, sends={"hall": -3.5, "finale": -9.0}, name="TEASE_2", kind="bell",
            cue="TEASE_2", frame=F("TEASE_2"))
+    ratchet(mx, F("GRID_64"), F("UNISON"), 50, -25.0, n=26, p=0.5)                  # 64 towers locking, resolves into ONE
+    ratchet(mx, F("ROLL"), F("DROP_WORLD") - 1, 51, -24.0, n=30, p=0.5)
     # ROLL: riser + drum roll 16ths -> 32nds, ending one frame before the drop
     r0, r1 = F("ROLL"), F("DROP_WORLD")
     rz = synth.noise_riser((r1 - r0) / 30.0, f0=380.0, f1=13000.0, q=1.3, seed=10, amp0_db=-36.0, trem=(8.0, 44.0))
@@ -642,7 +740,7 @@ def act6(mx):
     pans = [-0.55, 0.55, 0.0, -0.75, 0.75, -0.3, 0.3, 0.0, -0.85, 0.85, -0.45, 0.45]
     for c in cues.group("STAMP_"):
         i = c.p["index"]
-        x = cached(("stamp", c.p["note"]), lambda c=c, i=i: synth.stamp(c.p["note"], seed=i, size=1.0))
+        x = cached(("stamp", c.p["note"]), lambda c=c, i=i: stamp_big(c.p["note"], i))
         pan = pans[i]
         xs = dsp.to_stereo(x.mean(axis=1) * 0.35, pan) + x * 0.65 if abs(pan) > 0.01 else x
         mx.add("impacts", c.sample, xs, -8.0 + 0.35 * i, sends={"hall": -8.0, "room": -9.0}, name=c.name, kind="stamp",
@@ -650,7 +748,7 @@ def act6(mx):
     rng = rng_for(970)
     for c in cues.group("STORM_"):
         i = c.p["index"]
-        x = cached(("stamp_s", c.p["note"], i % 3), lambda c=c, i=i: synth.stamp(c.p["note"], seed=100 + i % 3, size=0.8,
+        x = cached(("stamp_s", c.p["note"], i % 3), lambda c=c, i=i: stamp_big(c.p["note"], 100 + i % 3, size=0.8,
                                                                                note_level=0.45))
         pan = float(rng.uniform(-0.85, 0.85))
         xs = dsp.to_stereo(x.mean(axis=1) * 0.35, pan) + x * 0.65
@@ -679,6 +777,17 @@ def act7(mx):
     sh = synth.shepard(d, seed=5, center=640.0, r0=0.20, r1=0.95, amp0_db=-26.0, amp1_db=0.0)
     mx.add("music", S("SHEPARD"), sh, -9.0, sends={"hall": -7.0}, name="SHEPARD", kind="riser", cue="SHEPARD",
            frame=F("SHEPARD"), check=False)
+    # the pull-back: wind pressure of the camera retreating, f1152-1343, + high-altitude air
+    pb = synth.whoosh((1344 - 1152) / 30.0, "soft", f_lo=260.0, f_hi=2600.0, q=1.2, pan0=-0.3, pan1=0.3, seed=60, low=0.8,
+                      pressure=0.9, end_fade_ms=20.0)
+    pb = pb * (np.linspace(0.15, 1.0, len(pb)) ** 1.4)[:, None]
+    mx.add("fx", S("CLIMAX"), pb, -16.0, sends={"hall": -12.0}, name="PULLBACK", kind="whoosh", cue=None, frame=F("CLIMAX"), check=False)
+    # choir 'ah' under the climax (A7b9 tones), rising with the build
+    ch = foley.choir(HZ(["A3", "E4", "G4", "Bb4", "C#5"]), (F("HARD_SILENCE") - F("CLIMAX") - 8) / 30.0, seed=7, attack=3.0,
+                     release=0.3)
+    fr_ = F("CLIMAX") + np.arange(len(ch)) / cues.SPF
+    cg = np.interp(fr_, [1152, 1280, 1344, 1376], [-34.0, -26.0, -19.0, -17.0])
+    mx.add("music", S("CLIMAX"), ch * dbl(cg)[:, None], 0.0, sends={"hall": -6.0}, name="CHOIR_CLIMAX", kind="pad", check=False)
     # a second noise riser for the last 3 bars, accelerating tremolo
     n0 = F("RISER_CLIMAX")
     rz = synth.noise_riser((E("RISER_CLIMAX") - n0) / 30.0, f0=300.0, f1=14000.0, q=1.2, seed=14, amp0_db=-40.0, amp1_db=0.0,
@@ -740,6 +849,12 @@ def act8(mx):
            (1735, -36.0), (1790, -66.0)]
     g = np.interp(fr, [p[0] for p in pts], [p[1] for p in pts])
     mx.add("music", d, pdD * dbl(g)[:, None], -10.0, sends={"finale": -4.5}, name="D_TONIC_pad", kind="pad", cue="D_TONIC",
+           frame=F("D_TONIC"), check=False)
+    chD = foley.choir(HZ(["D3", "A3", "D4", "F#4", "A4", "D5"]), (F("TAIL_END") - F("D_TONIC")) / 30.0 - 1.5, seed=9, attack=1.2,
+                      release=1.4)
+    frc = F("D_TONIC") + np.arange(len(chD)) / cues.SPF
+    cgD = np.interp(frc, [1440, 1470, 1560, 1650, 1700, 1735, 1790], [-34.0, -18.0, -19.0, -20.0, -26.0, -38.0, -66.0])
+    mx.add("music", d, chD * dbl(cgD)[:, None], 0.0, sends={"finale": -4.0}, name="CHOIR_D", kind="pad", cue="D_TONIC",
            frame=F("D_TONIC"), check=False)
     # sub pedal on D: D1 + D2 that sustain with a long natural decay
     nS = int((F("TAIL_END") - F("D_TONIC")) / 30.0 * SR)

@@ -389,7 +389,8 @@ export function buildCity(kits, name, { hit = 0, seed = name, lod = 0, shadow = 
   const sets = [], group = new THREE.Group(); group.name = 'city:' + name;
   const crownSize = kits.logo.crownSize;
   for (let L = 0; L < nL; L++) {
-    const set = new kits.towers.TowerSet({ lod, shadow, name: 'city:' + name + ':' + L });
+    const wet = lod === 0 && def.water && def.water.length && L <= 1;   // integrator: water cities reflect their skyline in the water
+    const set = new kits.towers.TowerSet({ lod, shadow, name: 'city:' + name + ':' + L, reflect: wet ? 0.55 : 0 });
     for (const T of def.towers) if ((T.layer || 0) === L) emitTower(set, T, crownSize);
     for (const P of def.prisms) if ((P.spec.layer || 0) === L) {
       const s = { ...P.spec }; const Ld = hit + (s.wave || 0), dur = 8;
