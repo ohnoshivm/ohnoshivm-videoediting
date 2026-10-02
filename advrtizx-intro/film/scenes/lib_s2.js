@@ -108,7 +108,7 @@ export function emitTower(set, T, crownSize) {
   let y = T.y || 0; const total = T.h;
   T.tiers.forEach((tr, k) => {
     const hh = total * tr.f, last = k === T.tiers.length - 1;
-    set.add({ ...common, y, w: T.w * tr.wf, d: T.d * (tr.df ?? tr.wf), h: hh, crown: last ? T.crown : null, crownScale: T.crownScale || 1, drop: last ? T.drop : 0, riseH: total });
+    set.add({ ...common, y, w: T.w * tr.wf, d: T.d * (tr.df ?? tr.wf), h: hh, crown: last ? T.crown : null, crownScale: T.crownScale || 1, drop: last ? T.drop : 0, riseH: T.riseH || total });
     y += hh;
   });
   // stacked crowns (the Chrysler move): smaller D arches nested on the first crown, sharing its landing
@@ -116,7 +116,7 @@ export function emitTower(set, T, crownSize) {
   for (const ex of T.extra || []) {
     const cs = crownSize(kind), cH = (cs.height / cs.width) * wTop;
     const w2 = wTop * ex.wf; yTop += cH * (ex.sink ?? 0.8); wTop = w2; kind = ex.crown;
-    set.add({ ...common, y: yTop, w: w2, d: T.d * T.tiers[T.tiers.length - 1].wf * ex.wf * 1.1, h: 0.2, crown: ex.crown, crownScale: 1, drop: (T.drop || 0) + (ex.dropExtra ?? 0), riseH: total, land: T.land + (ex.dl ?? 0) });
+    set.add({ ...common, y: yTop, w: w2, d: T.d * T.tiers[T.tiers.length - 1].wf * ex.wf * 1.1, h: 0.2, crown: ex.crown, crownScale: 1, drop: (T.drop || 0) + (ex.dropExtra ?? 0), riseH: T.riseH || total, land: T.land + (ex.dl ?? 0) });
   }
 }
 
@@ -135,6 +135,13 @@ export function slabD(kits, L, H, { left = false } = {}) {
   const dpts = pts.map(([x, y]) => [x - x0 + L / 2 - 0.0, y]);
   const poly = body.concat(dpts, [[-L / 2, H]]);
   return extrude(poly, { smoothDeg: 40 });
+}
+/** A curved D shell (the exact D, arc to the right unless mirrored) leaning forward: a Sydney sail. Width w metres, depth is applied by the prism spec (unit z here). */
+export function sailGeom(kits, w, depth, lean, mirror = false) {
+  const D = kits.logo.profile(mirror ? 'Dsm' : 'Ds'), s = w / D.width, pts = D.pts.map(([x, y]) => [x * s, y * s]), H = D.height * s;
+  const g = kits.logo.extrude(pts, { smoothDeg: 40 }), pos = g.attributes.position;
+  for (let i = 0; i < pos.count; i++) { const u = pos.getY(i) / H; pos.setZ(i, pos.getZ(i) + (lean / depth) * u * u); }
+  pos.needsUpdate = true; g.computeVertexNormals(); return g;
 }
 /** Long viaduct slab with exact D arch openings (dome up) cut into its underside. */
 export function viaduct(kits, L, H, archW, n, gap = 0.28) {
@@ -188,15 +195,14 @@ export const CITIES = {
     const crowns = { A: 0.34, Am: 0.08, Dd: 0.38, Ds: 0.10, Dsm: 0.10 };
     const band = (z0, a, b, pitch, stagger, w, wave, cs, layer, x0 = -640, x1 = 760) => slots(rng, { x0, x1, pitch, stagger, z: (x) => bank(x) - z0, w, crowns, wave, zj: 5, crownScale: cs, layer, top: (x, r, T) => S(lerp(a, b, prof(x) * (0.25 + 0.75 * r())), T.x, T.z) });
     let T = [];
-    T.push(...band(36, 0.52, 0.38, 92, 0, [32, 46], 0, 0.94, 0, -560, 700));
-    T.push(...band(170, 0.44, 0.30, 100, 46, [32, 44], 0, 0.88, 1, -640, 780));
-    T.push(...band(340, 0.38, 0.25, 108, 16, [30, 42], 8, 0.82, 2, -720, 860));
-    T.push(...band(560, 0.33, 0.22, 118, 60, [30, 40], 16, 0.76, 3, -800, 960));
+    T.push(...band(36, 0.46, 0.32, 92, 0, [32, 46], 0, 0.94, 0, -560, 700));
+    T.push(...band(170, 0.40, 0.26, 100, 46, [32, 44], 0, 0.88, 1, -640, 780));
+    T.push(...band(340, 0.34, 0.22, 108, 16, [30, 42], 8, 0.82, 2, -720, 860));
     const sx = 128, sz = bank(sx) - 250, shard = { x: sx, z: sz, w: 46, d: 46, crown: 'A', crownScale: 1.25, wave: 0, tiers: [{ f: 0.34, wf: 1 }, { f: 0.28, wf: 0.86 }, { f: 0.22, wf: 0.7 }, { f: 0.16, wf: 0.54 }], hero: 'shard' };
     shard.h = S(0.07, sx, sz) - CR.A * (46 * 0.54) * 1.25;
     const dx = -170, dz = bank(dx) - 105, dw2 = 100 * 0.62, dome = { x: dx, z: dz, w: 100, d: 82, crown: 'Dd', crownScale: 1.0, wave: 0, tiers: [{ f: 0.5, wf: 1 }, { f: 0.5, wf: 0.62 }], hero: 'dome', pitch: 3.4 };
     dome.h = S(0.40, dx, dz) - CR.Dd * dw2;
-    T = clearOf(T, [shard, dome]); T = keepFrac(rng, T, thin(o));
+    T = clearOf(T, [shard, dome]); T = keepFrac(rng, T, 0.62 * thin(o));
     T.push(shard, dome);
     const pts = []; for (let x = -1500; x <= 1500; x += 60) pts.push([x, rz(x)]);
     return { towers: T, prisms: [], hazes: [[1, 1], [0.90, 0.82], [0.76, 0.62], [0.60, 0.46]], water: [{ kind: 'river', pts, width: RW, tint: [0.30, 0, 0] }], cam, name: { z: -760, y: S(0.46, 70, -760) }, label: { y: 1000 }, shardX: 128 };
@@ -212,13 +218,12 @@ export const CITIES = {
     T.push(...B({ z: -40, s: [0.56, 0.40], pitch: 84, w: [52, 66], wave: 0, cs: 0.84, layer: 0, tiers: SETBACK, extra: stackD, x0: -620, x1: 700, pitchF: 3.9 }));
     T.push(...B({ z: -190, s: [0.47, 0.32], pitch: 92, stagger: 44, w: [50, 64], wave: 0, cs: 0.8, layer: 1, tiers: SETBACK, extra: stackD, x0: -680, x1: 760, pitchF: 3.9 }));
     T.push(...B({ z: -350, s: [0.41, 0.26], pitch: 100, stagger: 14, w: [50, 62], wave: 8, cs: 0.76, layer: 2, tiers: SETBACK, x0: -760, x1: 860, pitchF: 3.9 }));
-    T.push(...B({ z: -540, s: [0.37, 0.22], pitch: 112, stagger: 56, w: [50, 60], wave: 16, cs: 0.7, layer: 3, tiers: SETBACK, x0: -860, x1: 960, pitchF: 3.9 }));
     const tiers4 = [{ f: 0.42, wf: 1 }, { f: 0.26, wf: 0.8 }, { f: 0.18, wf: 0.58 }, { f: 0.14, wf: 0.38 }], tiers3 = [{ f: 0.46, wf: 1 }, { f: 0.30, wf: 0.76 }, { f: 0.24, wf: 0.56 }];
     const esb = { x: -60, z: -120, w: 66, d: 66, crown: 'A', crownScale: 1.0, wave: 0, tiers: tiers4, hero: 'esb', pitch: 3.9, layer: 0 }; esb.h = S(0.08, esb.x, esb.z) - CR.A * 66 * 0.38;
     const chr = { x: 215, z: -250, w: 60, d: 60, crown: 'Dd', crownScale: 1.0, wave: 0, tiers: tiers3, extra: [{ crown: 'Dd', wf: 0.66, sink: 0.84 }, { crown: 'Dd', wf: 0.66, sink: 0.84 }], hero: 'chrysler', pitch: 3.9, layer: 0 }; chr.h = S(0.12, chr.x, chr.z) - 1.75 * CR.Dd * 60 * 0.56;
     const wtc = { x: -330, z: -100, w: 54, d: 54, crown: 'Am', crownScale: 1.0, wave: 0, tiers: tiers3, hero: 'wtc', pitch: 3.9, layer: 0 }; wtc.h = S(0.15, wtc.x, wtc.z) - CR.Am * 54 * 0.56;
     const heroes = [esb, chr, wtc];
-    T = clearOf(T, heroes.map((h) => ({ x: h.x, z: h.z, w: h.w + 12, d: h.d + 90 }))); T = keepFrac(rng, T, thin(o));
+    T = clearOf(T, heroes.map((h) => ({ x: h.x, z: h.z, w: h.w + 12, d: h.d + 90 }))); T = keepFrac(rng, T, 0.6 * thin(o));
     T.push(...heroes);
     return { towers: T, prisms: [], hazes: [[1, 1], [0.90, 0.80], [0.76, 0.60], [0.60, 0.44]], water: [], cam, name: { z: -800, y: S(0.47, -10, -800) }, label: { y: 1000 } };
   },
@@ -269,7 +274,7 @@ export const CITIES = {
       T.push({ x: S0[0] + ux * s - uz * side, z: S0[1] + uz * s + ux * side, w, d: w * rng.range(1.6, 2.1), h, rot: rotA, crown: pick(), crownScale: 0.95, wave: s > 1000 ? 8 : s > 560 ? 4 : 0, pitch: 3.7, layer: s > 1000 ? 2 : s > 520 ? 1 : 0 });
     }
     const half = 52, wq = 4400, nx = -uz, nz = ux;
-    const water = [-1, 1].map((sgn) => ({ kind: 'quad', cx: S0[0] + ux * 700 + nx * sgn * (half + wq / 2), cz: S0[1] + uz * 700 + nz * sgn * (half + wq / 2), w: wq, l: 5400, rot: rotA, tint: [0.30, 0, 0] }));
+    const water = [-1, 1].map((sgn) => ({ kind: 'quad', cx: S0[0] + ux * 700 + nx * sgn * (half + wq / 2), cz: S0[1] + uz * 700 + nz * sgn * (half + wq / 2), w: wq, l: 5400, rot: rotA, tint: sgn < 0 ? [0.16, 0, 0] : [0.62, 0, 0] }));
     return { towers: keepFrac(rng, T, thin(o)), prisms: [], hazes: [[1, 1], [0.86, 0.76], [0.68, 0.52]], water, cam, name: { z: -1180, y: S(0.5, -150, -1180) }, label: { y: 1000 } };
   },
 
@@ -278,13 +283,13 @@ export const CITIES = {
     const cam = fitCam({ pos: [-60, 58, 640], look: [90, 140, -150], fov: 40, push: [28, 3, -30] }, 600, 0.82), S = roofAt(cam), crowns = { A: 0.28, Am: 0.12, Dd: 0.34, Ds: 0.14, Dsm: 0.12 };
     const T = [];
     T.push({ x: -150, z: 30, w: 330, d: 90, h: 7, crown: null, wave: 0, hero: 'podium', pitch: 6, layer: 0 });
-    const sails = [[-260, 118, 'Ds', 14], [-196, 94, 'Ds', -4], [-142, 70, 'Ds', -20], [-76, 106, 'Dsm', 8], [-18, 80, 'Dsm', -10], [30, 56, 'Dsm', -24]];
-    sails.forEach(([x, w, k, zz], i) => T.push({ x, z: 40 + zz, w, d: 26, h: 0.6, crown: k, crownScale: 1, wave: 0, hero: 'sail', ease: 'slam', pitch: 6, layer: 0 }));
+    const sails = [[-262, 118, false, 14], [-196, 94, false, -4], [-142, 70, false, -20], [-72, 106, true, 8], [-14, 80, true, -10], [34, 56, true, -24]];
     const B = bander(rng, S, crowns, (x) => 0.4 + 0.6 * bell(x, 420, 380));
     T.push(...B({ z: -520, s: [0.58, 0.40], pitch: 100, stagger: 0, w: [38, 52], wave: 8, cs: 0.84, layer: 1, x0: 200, x1: 1000 }));
     T.push(...B({ z: -700, s: [0.50, 0.34], pitch: 116, stagger: 50, w: [42, 58], wave: 16, cs: 0.8, layer: 2, x0: 200, x1: 1040 }));
     T.push(...B({ z: -390, s: [0.68, 0.56], pitch: 92, stagger: 20, w: [34, 46], wave: 4, cs: 0.88, layer: 1, x0: 380, x1: 980 }));
-    return { towers: keepFrac(rng, T, thin(o)), prisms: [{ geom: (k) => viaduct(k, 880, 150, 118, 5), spec: { x: 270, y: 0, z: -250, depth: 32, riseH: 150, ease: 'slam', hero: 'bridge', drop: 0, dropDur: 4, layer: 1 } }],
+    const sailPrisms = sails.map(([x, w, mir, zz]) => ({ geom: (k) => sailGeom(k, w, 14, mir ? -34 : 34, mir), spec: { x: x + (mir ? w / 2 : -w / 2 + 0) + (mir ? 0 : w / 2), y: 7, z: 40 + zz, depth: 14, ease: 'slam', drop: 130, dropDur: 4, layer: 0 } }));
+    return { towers: keepFrac(rng, T, thin(o)), prisms: [...sailPrisms, { geom: (k) => viaduct(k, 880, 150, 118, 5), spec: { x: 270, y: 0, z: -250, depth: 32, riseH: 150, ease: 'slam', hero: 'bridge', drop: 0, dropDur: 4, layer: 1 } }],
       hazes: [[1, 1], [0.86, 0.76], [0.66, 0.5]],
       water: [{ kind: 'rect', x0: -1500, x1: 1500, z0: -320, z1: 40, tint: [0.30, 0, 0] }, { kind: 'rect', x0: -1500, x1: -430, z0: 40, z1: 1400, tint: [0.30, 0, 0] }, { kind: 'rect', x0: -430, x1: 1500, z0: 140, z1: 1400, tint: [0.30, 0, 0] }],
       cam, name: { z: -900, y: S(0.46, 100, -900) }, label: { y: 1000 } };
@@ -338,6 +343,16 @@ export const CITIES = {
   },
 };
 
+CITIES.panel = function panel(rng, o = {}) {
+  const cam = { pos: [0, 46, 430], look: [0, 150, -300], fov: 40, push: [10, 3, -30] }, T = [], n = o.n || 6, pick = crownSeq(rng, { A: 0.45, Am: 0.1, Dd: 0.4, Ds: 0.05 });
+  const span = 330, pitch = span / (n - 1);
+  for (let i = 0; i < n; i++) {
+    const w = rng.range(20, 28), h = rng.range(170, 340) * (0.55 + 0.45 * Math.sin(Math.PI * (i + 0.5) / n)), crown = pick(), cs = 1.15;
+    T.push({ x: -span / 2 + i * pitch + rng.range(-6, 6), z: rng.range(-30, 30) - (i % 2) * 70, w, d: w * rng.range(0.9, 1.2), h: Math.max(6.2 * w, h), crown, crownScale: cs, wave: 0, pitch: 4, layer: 0 });
+  }
+  return { towers: T, prisms: [], hazes: [[1, 1]], water: [], cam, name: { z: -420, y: 120 }, label: { y: 1000 } };
+};
+
 /** a band generator over a roofline mapper S (see roofAt): c = {z, s:[a,b] screen fractions, pitch, stagger, w, wave, cs, layer, x0, x1, tiers, extra, accept, pitchF, crowns, prof} */
 function bander(rng, S, crowns, prof) {
   return (c) => slots(rng, { x0: c.x0 ?? -640, x1: c.x1 ?? 760, pitch: c.pitch, stagger: c.stagger || 0, z: c.z, w: c.w, crowns: c.crowns || crowns, wave: c.wave || 0, zj: c.zj ?? 5,
@@ -367,6 +382,7 @@ export function buildCity(kits, name, { hit = 0, seed = name, lod = 0, shadow = 
   const def = CITIES[name](rng, { thin: thinF });
   const trng = makeRng('s2t:' + seed);
   timeTowers(def.towers, { hit, rng: trng, dropDur, dur: durRange, waveScale });
+  for (const T of def.towers) if (!T.hero && T.crown !== 'S') { const wmax = Math.max(14, T.h / 6); if (T.w > wmax) { const f = wmax / T.w; T.w *= f; T.d = Math.min(T.d * f * 1.1, T.w * 1.2); T.crownScale = Math.min(1.3, (T.crownScale || 1) / Math.sqrt(f)); } }
   if (hScale !== 1) for (const T of def.towers) T.h *= hScale;
   const nL = Math.max(1, ...def.towers.map((T) => (T.layer || 0) + 1), ...def.prisms.map((P) => (P.spec.layer || 0) + 1));
   const sets = [], group = new THREE.Group(); group.name = 'city:' + name;
