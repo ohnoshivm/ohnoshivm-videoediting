@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.env
+.env.*
+.venv/
+node_modules/
+models/
+media/
+renders/
+*.mp4
+*.mov
+*.wav
+*.mp3
+*.pt
+*.pth
+*.onnx
+.DS_Store
