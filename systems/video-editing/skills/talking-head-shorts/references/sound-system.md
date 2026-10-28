@@ -1,0 +1,9 @@
+# Sound design: sourcing, placement and review
+
+Use `openverse-sfx` to research candidate sounds. Its catalogue metadata is not a rights guarantee: verify each source page, permitted commercial use, modifications and attribution. A request to install a tool is not permission to download an unapproved track. Log creator, source, license URL, changes and credits.
+
+Use `real-sfx` to identify, plan and place deliberate SFX on exact video cues, preserving separate voice, music and SFX stems; prefer the actual timeline's cues over guessed cuts. The bundled uisfx sounds are CC0 synthetic UI cues, not real recordings. Our existing synthesized effects can be used when appropriate and must be labeled honestly. Never double a previous SFX layer.
+
+Use `earshot` for available measurements and, when its models and dependencies are actually installed, model-backed descriptions, comparisons and soundtrack analysis. Its bank is procedural, not recorded audio. Do not run a model-loading command that may fetch weights without the applicable approval. Constrain threads on the 8 GB machine, and avoid simultaneous heavy renders and audio models. A missing package, model or FFmpeg filter is a stated limitation, not evidence that a check passed.
+
+For every reel: make a cue sheet with time, purpose, candidate, source/rights and intended level; use a restrained hook accent and cues that support the story. Keep speech intelligible. Measure the finished encoded file. Models and meters do not judge taste, word-level transcript accuracy or licensing and can be wrong. Ask a person to listen through the entire export and check captions and cuts; provide timecoded review points. Never report a human listening review unless it happened. Do not upload private material for cloud analysis without explicit consent.

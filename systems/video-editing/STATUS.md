@@ -10,4 +10,4 @@
 
 ## Public handoff checks
 
-The talking-head skill and kit are excluded from this package: original redistribution rights remain unknown. The full internal package remains local. Tests in this directory only verify mocked Openverse metadata filtering; they do not establish live service, runtime or audio quality. Run `python3 -B -m unittest discover -s tests -v` from this directory.
+The talking-head skill and kit are included after the founder confirmed ownership and approved public redistribution on 28 October 2026. Script syntax checks do not establish rendering or editing quality. Tests in this directory only verify mocked Openverse metadata filtering; they do not establish live service, runtime or audio quality. Run `python3 -B -m unittest discover -s tests -v` from this directory.

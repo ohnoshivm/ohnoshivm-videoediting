@@ -1,6 +1,6 @@
 # Editing and sound workflow
 
-1. **Ingest and story:** Preserve the raw file. Use the separately cleared local talking-head skill if available (withheld here pending rights confirmation); select a complete, truthful idea and a strong first-second hook. Default to about 30 seconds when the source supports it.
+1. **Ingest and story:** Preserve the raw file. Read `skills/talking-head-shorts/SKILL.md`; select a complete, truthful idea and a strong first-second hook. Default to about 30 seconds when the source supports it.
 2. **Plan:** Create a beat sheet: source in/out, spoken words, visual treatment, relevant proof or B-roll, planned motion, cue time, sound source and licence. Secure rights and required approvals for footage, screenshots, fonts and audio.
 3. **Cut and frame:** Cut at meaningful phrases with FFmpeg or an editor. Keep qualifications and avoid misleading cuts. Create an English ASR draft with the already approved local toolbelt, then have a person correct the transcript and timing by ear.
 4. **Build visuals:** Use Remotion for captions, graphics, composition and the brand system. Check the actual approved guidance for the specific account. Avoid exaggerating resolution when the source is soft. Inspect the first second, cuts and phone-safe areas.

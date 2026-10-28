@@ -1,6 +1,6 @@
 # Install and verify
 
-These examples target macOS with Git, Python 3.12, FFmpeg, FFprobe and `uv`. They pin versions researched on 28 October 2026. Do not run into an existing folder. Repository: https://github.com/ohnoshivm/ohnoshivm-videoediting (public). This system lives under `systems/video-editing/`. The talking-head kit is withheld pending redistribution clearance.
+These examples target macOS with Git, Python 3.12, FFmpeg, FFprobe and `uv`. They pin versions researched on 28 October 2026. Do not run into an existing folder. Repository: https://github.com/ohnoshivm/ohnoshivm-videoediting (public). This system lives under `systems/video-editing/`. The talking-head kit is included with founder ownership and redistribution approval.
 
 ## 1. Install the three studio sound skills (Codex or Claude Code)
 
@@ -14,7 +14,7 @@ ln -s "$HOME/video-editing-system/systems/video-editing/skills/real-sfx" "$HOME/
 ln -s "$HOME/video-editing-system/systems/video-editing/skills/earshot" "$HOME/.agents/skills/earshot"
 ```
 
-For Claude Code use `$HOME/.claude/skills` as the destination instead. For OpenBot import the three folders into its skill library and install them for the selected agent. These are skill instructions; Earshot and Real SFX also need the runtimes below. No talking-head kit is installed.
+For Claude Code use `$HOME/.claude/skills` as the destination instead. For OpenBot import the three folders into its skill library and install them for the selected agent. These are skill instructions; Earshot and Real SFX also need the runtimes below. To install the talking-head instructions and kit, also run the optional command below.
 
 ### Pinned upstream sources and runtime retrieval
 
@@ -69,3 +69,15 @@ python3 "$REAL_SFX_HOME/scripts/setup.py" check
 ```
 
 A search returns candidate metadata, not cleared audio. If it times out or the doctor reports missing components, record that result; do not label a failed or unrun check as passed. Do not use the upstream arbitrary-URL fetcher unattended or let it overwrite an existing file. Download a specific sound only after its licence and any required approval are confirmed.
+
+## 5. Talking-head skill and kit
+
+After cloning the repository above, install the skill for Codex:
+
+```bash
+ln -s "$HOME/video-editing-system/systems/video-editing/skills/talking-head-shorts" "$HOME/.agents/skills/talking-head-shorts"
+```
+
+For Claude Code use `$HOME/.claude/skills` as the destination. For OpenBot import this skill folder and install it for the editing agent. Restart the agent session after installation. Read `skills/talking-head-shorts/SKILL.md` and its references before use. The kit is not a standalone Remotion app: review `scripts/install-kit.sh` before copying it into an existing Remotion project. This installer may modify project files; preserve them and review the changes. Its prep scripts may install tools, download models or delete a work directory; inspect them and obtain the applicable approval before execution.
+
+Read `references/edit-schema.md` for supported fields and `references/creative-standard.md` for intended direction and known gaps. No complete render or human listening is verified by this installation.
