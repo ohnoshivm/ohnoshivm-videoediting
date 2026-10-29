@@ -18,6 +18,7 @@ A practical, extensible system for turning founder footage into reviewed short v
 | `openverse-sfx` | Search candidate sounds and keep source/licence records | Approve a specific asset after checking its source and rights |
 | `real-sfx` | Turn a cue sheet or observed motion into effects in a separate layer | Choose the right moments and sounds; listen to the full mix |
 | `earshot` | Local measurements, model-based analysis and procedural SFX | Assess taste and meaning; check voice and sound by ear |
+| `scenario-kinetic-film` | Beat-driven kinetic motion design, film engine and render checks | Adapt to the brief and approved visual constraints; review the finished film |
 | FFmpeg | Trim/reframe footage, handle audio and encode | Approve cut points and protect meaning |
 | Remotion | Code-driven graphics, captions, overlays and compositing | Design the visuals and inspect the render |
 
@@ -28,3 +29,5 @@ Use an NLE if a project benefits from it. Remotion does not choose or cut the fo
 Keep raw footage, client material, credentials, installed packages, model weights, audio libraries, local configs, caches and rendered videos out of a public repository. Use only cleared assets with their licence/attribution recorded. Do not fetch models or sound libraries without the permissions that apply to the project. Do not publish, distribute client material, spend, or upload private media to a cloud model without the relevant approval. Never manufacture spoken claims or disguise synthetic voices as the founder.
 
 The `skills/` directory contains the studio talking-head skill and kit, two adapted upstream sound skills and a lightweight Real SFX wrapper. The talking-head skill and kit are included after the founder confirmed ownership and approved public redistribution on 28 October 2026. The wrapper points to Clipwing's separately installed runtime. Review the source register before redistributing; Yashi owns repository location and release verification.
+
+For motion design, consult `scenario-kinetic-film`. Founder talking-head shorts remain subject to the two approved looks in the current local talking-head skill.

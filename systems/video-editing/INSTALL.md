@@ -81,3 +81,13 @@ ln -s "$HOME/video-editing-system/systems/video-editing/skills/talking-head-shor
 For Claude Code use `$HOME/.claude/skills` as the destination. For OpenBot import this skill folder and install it for the editing agent. Restart the agent session after installation. Read `skills/talking-head-shorts/SKILL.md` and its references before use. The kit is not a standalone Remotion app: review `scripts/install-kit.sh` before copying it into an existing Remotion project. This installer may modify project files; preserve them and review the changes. Its prep scripts may install tools, download models or delete a work directory; inspect them and obtain the applicable approval before execution.
 
 Read `references/edit-schema.md` for supported fields and `references/creative-standard.md` for intended direction and known gaps. No complete render or human listening is verified by this installation.
+
+## 6. Kinetic motion-design skill
+
+After cloning, install the instructions and bundled engine:
+
+```bash
+ln -s "$HOME/video-editing-system/systems/video-editing/skills/scenario-kinetic-film" "$HOME/.agents/skills/scenario-kinetic-film"
+```
+
+For OpenBot, import the folder and install it for the intended agent. Restart the agent session. Read `skills/scenario-kinetic-film/SKILL.md` before use. The engine requires Node, Playwright, FFmpeg, Python, NumPy and OpenCV; runtime setup and a full film render have not been verified. Scenario generation is optional and may cost money.

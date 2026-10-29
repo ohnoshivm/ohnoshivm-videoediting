@@ -10,3 +10,7 @@
 | talking-head-shorts | Local OpenBot skill revision 4, based on founder-provided bundle | Founder explicitly confirmed ownership and approved public redistribution on 28 October 2026. Original ZIP had no licence file. This approval permits this upload; it does not invent an MIT licence or a general downstream reuse grant. Third-party licences remain separately applicable. |
 
 A software licence is not the licence for any sound recording or a right to use the founder's footage. Record per-asset creator, source page, licence, date, modifications and attribution in each project. Do not commit user media, fonts, models or credentials.
+
+## Scenario kinetic film
+
+Source: founder-supplied `scenario-kinetic-film-skill.zip`, 29 October 2026. Studio integration guidance and description were adapted locally. The archive includes OFL notices for its bundled fonts, but no general licence or upstream provenance for the other files was supplied. Do not infer third-party redistribution rights from the font notices.
